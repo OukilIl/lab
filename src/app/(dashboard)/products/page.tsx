@@ -16,58 +16,63 @@ export default async function ProductsPage() {
   })
 
   return (
-    <div>
+    <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Products Management</h1>
+        <h1 className="h1">Product Management</h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 350px) 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
         <CreateProductForm />
 
         <div>
-          <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Package size={20}/> Inventory Batches by Product</h2>
+          <h2 className="h2" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Package size={20} color="var(--accent-blue)" /> 
+            Active Inventory
+          </h2>
+          
           {products.length === 0 ? (
-            <p style={{ color: 'var(--card-foreground)' }}>No products registered yet. Please register a product using the form.</p>
+            <div className="card" style={{ borderStyle: 'dashed', background: 'transparent', textAlign: 'center' }}>
+              <p className="text-mute">No products registered yet.</p>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {products.map(product => (
-                <div key={product.id} className="glass-card" style={{ maxWidth: '100%' }}>
-                  <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between' }}>
+                <div key={product.id} className="card" style={{ padding: '0' }}>
+                  <div style={{ padding: '20px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{product.name}</h3>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--card-foreground)' }}>GTIN: {product.gtin}</p>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '2px' }}>{product.name}</h3>
+                      <p className="text-mute" style={{ fontSize: '0.8rem' }}>GTIN: {product.gtin}</p>
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.875rem' }}>
-                      <p>Target: {product.targetStock}</p>
-                      <p>Warning &le;{product.lowStockThresholdPct}% | Alerts at {product.expirationWarningDays} days</p>
+                    <div style={{ textAlign: 'right', fontSize: '0.75rem', fontWeight: 600 }}>
+                      <p className="text-mute">TARGET: {product.targetStock}</p>
+                      <p style={{ color: 'var(--accent-blue)' }}>ALERT &le; {product.lowStockThresholdPct}%</p>
                     </div>
                   </div>
 
-                  {product.inventoryBatches.length === 0 ? (
-                    <p style={{ fontSize: '0.875rem', color: 'var(--card-foreground)' }}>No active stock for this product.</p>
-                  ) : (
-                    <div>
-                      <h4 style={{ fontSize: '0.875rem', marginBottom: '0.5rem', textTransform: 'uppercase', color: 'var(--card-foreground)' }}>Active Batches</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ padding: '20px' }}>
+                    {product.inventoryBatches.length === 0 ? (
+                      <p className="text-mute" style={{ fontSize: '0.85rem' }}>No active stock for this product.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {product.inventoryBatches.map(batch => (
-                          <div key={batch.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                          <div key={batch.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                             <div>
-                              <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>Batch: {batch.batchNumber}</p>
-                              <p style={{ fontSize: '0.75rem', color: 'var(--card-foreground)' }}>Exp: {new Date(batch.expirationDate).toLocaleDateString()}</p>
+                              <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>BATCH {batch.batchNumber}</p>
+                              <p className="text-mute" style={{ fontSize: '0.75rem' }}>EXP {new Date(batch.expirationDate).toLocaleDateString()}</p>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <span style={{ fontWeight: 700 }}>Qty: {batch.currentQuantity}</span>
-                              <form action={logUsage as any} style={{ display: 'flex', gap: '0.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{batch.currentQuantity} UNITS</span>
+                              <form action={logUsage as any} style={{ display: 'flex', gap: '4px' }}>
                                 <input type="hidden" name="inventoryBatchId" value={batch.id} />
-                                <input name="quantityUsed" type="number" min="1" max={batch.currentQuantity} defaultValue="1" style={{ width: '60px', padding: '0.25rem', borderRadius: '0.25rem', border: '1px solid var(--border)' }} />
-                                <button type="submit" className="btn-primary" style={{ padding: '0.25rem 0.5rem', background: 'var(--success)' }}>Use</button>
+                                <input name="quantityUsed" type="number" min="1" max={batch.currentQuantity} defaultValue="1" style={{ width: '50px', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-medium)', fontSize: '0.8rem' }} />
+                                <button type="submit" className="btn btn-accent" style={{ padding: '6px 10px', fontSize: '0.75rem' }}>Use</button>
                               </form>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

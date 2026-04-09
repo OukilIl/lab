@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { addInventoryBatch } from '@/app/actions/inventory'
 import { useRouter } from 'next/navigation'
+import { ScanBarcode } from 'lucide-react'
 
 export function ScannerComponent() {
   const router = useRouter()
@@ -126,69 +127,83 @@ export function ScannerComponent() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 400px)', gap: '2rem' }}>
-      <div>
-        <h2 style={{ marginBottom: '1rem' }}>Scan Barcode</h2>
-        <div className="glass-card" style={{ maxWidth: '100%', padding: '1rem' }}>
-          <div id="reader" style={{ width: '100%', border: 'none' }}></div>
-          {scanResult && (
-            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--success)', color: 'white', borderRadius: '0.5rem' }}>
-              <strong>Scan Successful!</strong><br/>
-              <span style={{ fontSize: '0.8rem', wordBreak: 'break-all' }}>Raw: {scanResult}</span>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="fade-in">
+      <h1 className="h1" style={{ marginBottom: '2rem' }}>Inventory Scanning</h1>
       
-      <div className="glass-card" style={{ maxWidth: '100%' }}>
-        <h2 style={{ marginBottom: '1.5rem' }}>Add to Inventory</h2>
-        
-        {message && (
-          <div style={{ marginBottom: '1rem', padding: '1rem', background: message.type === 'error' ? '#fee2e2' : '#d1fae5', color: message.type === 'error' ? '#991b1b' : '#065f46', borderRadius: '0.5rem' }}>
-            <p>{message.text}</p>
-            {message.code === 'NOT_FOUND' && message.gtin && (
-              <button 
-                onClick={() => router.push(`/products?gtin=${message.gtin}`)}
-                className="btn-primary" 
-                style={{ marginTop: '0.75rem', background: 'var(--danger)' }}
-              >
-                Register this GTIN now
-              </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
+        <div>
+          <h2 className="h2" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <ScanBarcode size={20} color="var(--accent-blue)" />
+            Barcode Reader
+          </h2>
+          <div className="card" style={{ padding: '8px', background: 'var(--bg-primary)' }}>
+            <div id="reader" style={{ width: '100%', border: 'none', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}></div>
+            {scanResult && (
+              <div style={{ marginTop: '12px', padding: '12px', background: 'var(--accent-blue-soft)', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-blue)', textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Scanned Successfully</p>
+                <p className="text-mute" style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{scanResult}</p>
+              </div>
             )}
           </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>GTIN (Product ID)</label>
-            <input name="gtin" value={gtin} onChange={e => setGtin(e.target.value)} required placeholder="14-digit GTIN" />
-          </div>
-          <div className="input-group">
-            <label>Batch / Lot Number</label>
-            <input name="batchNumber" value={batchNumber} onChange={e => setBatchNumber(e.target.value)} required placeholder="Alphanumeric batch" />
-          </div>
-          <div className="input-group">
-            <label>Expiration Date</label>
-            <input name="expirationDate" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} required />
-          </div>
-          <div className="input-group">
-            <label>Initial Quantity</label>
-            <input name="initialQuantity" type="number" defaultValue="1" required />
-          </div>
-          <div className="input-group">
-            <label>Producer (Optional)</label>
-            <input name="producer" type="text" placeholder="e.g. Pfizer" />
-          </div>
-          <div className="input-group">
-            <label>Notes (Optional)</label>
-            <input name="notes" type="text" placeholder="e.g. Fridge 2" />
-          </div>
+        </div>
+        
+        <div className="card">
+          <h2 className="h2" style={{ marginBottom: '1.5rem' }}>Add New Batch</h2>
           
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="submit" className="btn-primary" style={{ flex: 1 }}>Save Batch</button>
-            {scanResult && <button type="button" onClick={resetScan} className="btn-primary" style={{ background: 'var(--border)', color: 'var(--foreground)' }}>Scan Another</button>}
-          </div>
-        </form>
+          {message && (
+            <div style={{ marginBottom: '1.5rem', padding: '14px', background: message.type === 'error' ? '#fef2f2' : '#ecfdf5', color: message.type === 'error' ? '#991b1b' : '#065f46', borderRadius: 'var(--radius-md)', border: '1px solid', borderColor: message.type === 'error' ? '#fee2e2' : '#d1fae5' }}>
+              <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>{message.text}</p>
+              {message.code === 'NOT_FOUND' && message.gtin && (
+                <button 
+                  onClick={() => router.push(`/products?gtin=${message.gtin}`)}
+                  className="btn btn-primary" 
+                  style={{ marginTop: '12px', width: '100%', borderStyle: 'dashed' }}
+                >
+                  Register this GTIN now
+                </button>
+              )}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>GTIN (Product ID)</label>
+              <input name="gtin" value={gtin} onChange={e => setGtin(e.target.value)} required placeholder="14-digit GTIN" />
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="input-group">
+                <label>Batch Number</label>
+                <input name="batchNumber" value={batchNumber} onChange={e => setBatchNumber(e.target.value)} required placeholder="Batch ID" />
+              </div>
+              <div className="input-group">
+                <label>Expiration</label>
+                <input name="expirationDate" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} required />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px' }}>
+              <div className="input-group">
+                <label>Init Qty</label>
+                <input name="initialQuantity" type="number" defaultValue="1" required />
+              </div>
+              <div className="input-group">
+                <label>Producer</label>
+                <input name="producer" type="text" placeholder="e.g. Pfizer" />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Notes (Optional)</label>
+              <input name="notes" type="text" placeholder="e.g. Cold storage shelf B" />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', marginTop: '1rem' }}>
+              <button type="submit" className="btn btn-accent" style={{ flex: 1 }}>Save Inventory Batch</button>
+              {scanResult && <button type="button" onClick={resetScan} className="btn btn-primary">Reset</button>}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

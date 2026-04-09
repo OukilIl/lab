@@ -59,50 +59,73 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '2rem' }}>Inventory Dashboard</h1>
+    <div className="fade-in">
+      <h1 className="h1" style={{ marginBottom: '2rem' }}>Inventory Status</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-        <div className="glass-card" style={{ maxWidth: '100%', borderColor: 'var(--border)' }}>
-          <h3 style={{ color: 'var(--card-foreground)', fontSize: '0.875rem' }}>Total Items in Stock</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 700, margin: '0.5rem 0' }}>{totalItems}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p className="text-mute" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Available Stock</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 700, margin: '4px 0', letterSpacing: '-0.03em' }}>{totalItems}</p>
+            </div>
+            <div style={{ padding: '12px', background: 'var(--accent-blue-soft)', borderRadius: '12px', color: 'var(--accent-blue)' }}>
+              <PackageOpen size={24} />
+            </div>
+          </div>
         </div>
         
-        <div className="glass-card" style={{ maxWidth: '100%', borderLeft: '4px solid var(--warning)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning)', fontWeight: 600 }}>
-            <AlertTriangle size={20} /> Expiring Soon
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p className="text-mute" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Expiring Soon</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 700, margin: '4px 0', letterSpacing: '-0.03em', color: spoilageWarnings.length > 0 ? 'var(--color-warning)' : 'inherit' }}>{spoilageWarnings.length}</p>
+            </div>
+            <div style={{ padding: '12px', background: spoilageWarnings.length > 0 ? '#fffbeb' : 'var(--bg-primary)', borderRadius: '12px', color: spoilageWarnings.length > 0 ? 'var(--color-warning)' : 'var(--text-secondary)' }}>
+              <AlertTriangle size={24} />
+            </div>
           </div>
-          <p style={{ fontSize: '2rem', fontWeight: 700, margin: '0.5rem 0' }}>{spoilageWarnings.length}</p>
         </div>
 
-        <div className="glass-card" style={{ maxWidth: '100%', borderLeft: '4px solid var(--danger)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)', fontWeight: 600 }}>
-            <TrendingDown size={20} /> Low Stock Warnings
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p className="text-mute" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Low Stock</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 700, margin: '4px 0', letterSpacing: '-0.03em', color: lowStockWarnings.length > 0 ? 'var(--color-danger)' : 'inherit' }}>{lowStockWarnings.length}</p>
+            </div>
+            <div style={{ padding: '12px', background: lowStockWarnings.length > 0 ? '#fef2f2' : 'var(--bg-primary)', borderRadius: '12px', color: lowStockWarnings.length > 0 ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
+              <TrendingDown size={24} />
+            </div>
           </div>
-          <p style={{ fontSize: '2rem', fontWeight: 700, margin: '0.5rem 0' }}>{lowStockWarnings.length}</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2.5rem' }}>
         <section>
-          <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '2px solid var(--border)', paddingBottom: '0.5rem' }}><AlertTriangle color="var(--warning)" /> Needs Attention (Spoiling)</h2>
+          <h2 className="h2" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ width: '8px', height: '24px', background: 'var(--color-warning)', borderRadius: '4px' }}></span>
+            Needs Attention (Spoiling)
+          </h2>
           {spoilageWarnings.length === 0 ? (
-           <p style={{ color: 'var(--card-foreground)' }}>No items are nearing expiration.</p>
+           <div className="card" style={{ padding: '20px', borderStyle: 'dashed', background: 'transparent', textAlign: 'center' }}>
+             <p className="text-mute">No items are nearing expiration.</p>
+           </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {spoilageWarnings.map((w, idx) => (
-                <div key={idx} className="glass-card" style={{ maxWidth: '100%', padding: '1.5rem' }}>
+                <div key={idx} className="card" style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{w.product.name}</h4>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--card-foreground)' }}>Batch: {w.batch.batchNumber}</p>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '2px' }}>{w.product.name}</h4>
+                      <p className="text-mute" style={{ fontSize: '0.8rem' }}>Batch {w.batch.batchNumber}</p>
                     </div>
-                    <div style={{ background: '#fef3c7', color: '#b45309', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                      {w.daysUntilExpiration <= 0 ? 'Expired' : `${w.daysUntilExpiration} days left`}
+                    <div style={{ background: '#fffbeb', color: '#92400e', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                      {w.daysUntilExpiration <= 0 ? 'Expired' : `${w.daysUntilExpiration}D REMAINING`}
                     </div>
                   </div>
-                  <div style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
-                    <strong>Qty:</strong> {w.batch.currentQuantity} / {w.batch.initialQuantity}
+                  <div style={{ marginTop: '12px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="text-mute">Current Quantity</span>
+                    <span style={{ fontWeight: 600 }}>{w.batch.currentQuantity} / {w.batch.initialQuantity}</span>
                   </div>
                 </div>
               ))}
@@ -111,23 +134,35 @@ export default async function DashboardPage() {
         </section>
 
         <section>
-          <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '2px solid var(--border)', paddingBottom: '0.5rem' }}><TrendingDown color="var(--danger)" /> Low Stock Alerts</h2>
+          <h2 className="h2" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ width: '8px', height: '24px', background: 'var(--color-danger)', borderRadius: '4px' }}></span>
+            Low Stock Alerts
+          </h2>
           {lowStockWarnings.length === 0 ? (
-            <p style={{ color: 'var(--card-foreground)' }}>All stock levels are healthy.</p>
+            <div className="card" style={{ padding: '20px', borderStyle: 'dashed', background: 'transparent', textAlign: 'center' }}>
+              <p className="text-mute">All stock levels are healthy.</p>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {lowStockWarnings.map((w, idx) => (
-                <div key={idx} className="glass-card" style={{ maxWidth: '100%', padding: '1.5rem', borderLeft: '4px solid var(--danger)' }}>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{w.product.name}</h4>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '0.875rem' }}>
-                    <div style={{ flex: 1, height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, Math.max(0, (w.currentTotal / w.product.targetStock) * 100))}%`, height: '100%', background: 'var(--danger)' }}></div>
-                    </div>
-                    <div style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                      {w.currentTotal} / {w.product.targetStock} Total
-                    </div>
+                <div key={idx} className="card" style={{ padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>{w.product.name}</h4>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-danger)' }}>{w.currentTotal} / {w.product.targetStock}</span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--card-foreground)', marginTop: '0.5rem' }}>Target: {w.product.targetStock} | Alert at &le; {w.threshold}</p>
+                  <div style={{ height: '6px', background: 'var(--bg-primary)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        width: `${Math.min(100, Math.max(0, (w.currentTotal / w.product.targetStock) * 100))}%`, 
+                        height: '100%', 
+                        background: 'var(--color-danger)',
+                        borderRadius: '3px'
+                      }} 
+                    />
+                  </div>
+                  <p className="text-mute" style={{ fontSize: '0.7rem', marginTop: '8px', textAlign: 'right' }}>
+                    CRITICAL AT {w.threshold} UNITS ({w.product.lowStockThresholdPct}%)
+                  </p>
                 </div>
               ))}
             </div>

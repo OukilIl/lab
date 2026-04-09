@@ -14,16 +14,25 @@ export function NavBar() {
 
   return (
     <nav className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '1.25rem' }}>
-        <Box className="text-primary" />
+      <div className="nav-logo">
+        <Box color="var(--accent-blue)" strokeWidth={2.5} />
         LabStock
       </div>
       <div className="nav-links">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><LayoutDashboard size={18} /> Dashboard</Link>
-        <Link href="/scan" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><ScanBarcode size={18} /> Scan</Link>
-        <Link href="/products" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Settings size={18} /> Products</Link>
-        <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '1rem', fontWeight: 500 }}>
-          <LogOut size={18} /> Logout
+        <Link href="/" className="nav-link">
+          <LayoutDashboard size={20} />
+          <span className="hidden-mobile">Dashboard</span>
+        </Link>
+        <Link href="/scan" className="nav-link">
+          <ScanBarcode size={20} />
+          <span className="hidden-mobile">Scan</span>
+        </Link>
+        <Link href="/products" className="nav-link">
+          <Settings size={20} />
+          <span className="hidden-mobile">Settings</span>
+        </Link>
+        <button onClick={handleLogout} className="nav-link btn-logout" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+          <LogOut size={20} />
         </button>
       </div>
     </nav>

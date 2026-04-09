@@ -31,35 +31,40 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="auth-container">
-      <div className="glass-card">
-        <h1 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>First Time Setup</h1>
-        <p style={{ color: 'var(--card-foreground)', fontSize: '0.875rem', textAlign: 'center', marginBottom: '1.5rem'}}>
-          Create the primary user account to secure your laboratory data.
-        </p>
-        
-        {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', padding: '0.5rem', background: '#fee2e2', borderRadius: '0.5rem' }}>{error}</div>}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', padding: '20px' }} className="fade-in">
+      <div className="card" style={{ width: '100%', maxWidth: '420px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h1 className="h1" style={{ fontSize: '1.75rem', marginBottom: '8px', letterSpacing: '-0.02em' }}>Welcome to LabStock</h1>
+          <p className="text-mute" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Let's set up your secure admin account</p>
+        </div>
+
+        {error && <div style={{ color: 'var(--color-danger)', marginBottom: '1.5rem', padding: '12px', background: '#fef2f2', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', fontWeight: 500, border: '1px solid #fee2e2' }}>{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="username">Username</label>
-            <input id="username" name="username" type="text" required />
+            <label htmlFor="username">Create Username</label>
+            <input id="username" name="username" type="text" required placeholder="e.g. lab_admin" />
           </div>
           
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" required />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="confirm">Confirm Password</label>
-            <input id="confirm" name="confirm" type="password" required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="input-group">
+              <label htmlFor="password">Password</label>
+              <input id="password" name="password" type="password" required placeholder="••••••••" />
+            </div>
+            <div className="input-group">
+              <label htmlFor="confirm">Confirm</label>
+              <input id="confirm" name="confirm" type="password" required placeholder="••••••••" />
+            </div>
           </div>
           
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Setting up...' : 'Create Admin Account'}
+          <button type="submit" className="btn btn-accent" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+            {loading ? 'Initializing...' : 'Complete System Setup'}
           </button>
         </form>
+        
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)', textAlign: 'center' }}>
+          <p className="text-mute" style={{ fontSize: '0.75rem' }}>DATA STORED LOCALLY AT PRISMA/DEV.DB</p>
+        </div>
       </div>
     </div>
   )
