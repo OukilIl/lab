@@ -80,7 +80,8 @@ export function ScannerComponent() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setMessage(null)
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     
     const result = await addInventoryBatch(formData)
     if (result?.error) {
@@ -91,6 +92,7 @@ export function ScannerComponent() {
       setGtin('')
       setBatchNumber('')
       setExpirationDate('')
+      form.reset()
       router.refresh()
     }
   }

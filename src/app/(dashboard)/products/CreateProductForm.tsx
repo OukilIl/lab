@@ -55,14 +55,15 @@ export function CreateProductForm() {
     setLoading(true)
     setError(null)
     
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const result = await addProduct(formData)
     
     if (result?.error) {
       setError(result.error)
     } else {
       setGtin('')
-      e.currentTarget.reset()
+      form.reset()
       router.refresh()
     }
     setLoading(false)
