@@ -1,39 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { LogOut, LayoutDashboard, Settings, ScanBarcode, Box } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { LayoutDashboard, ScanBarcode, Package } from 'lucide-react'
 
 export function NavBar() {
-  const router = useRouter()
-  
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
-  }
+  const pathname = usePathname()
 
   return (
-    <nav className="navbar">
-      <div className="nav-logo">
-        <Box color="var(--accent-blue)" strokeWidth={2.5} />
-        LabStock
-      </div>
+    <nav className="mobile-nav-wrapper">
       <div className="nav-links">
-        <Link href="/" className="nav-link">
-          <LayoutDashboard size={20} />
-          <span className="hidden-mobile">Dashboard</span>
+        <Link href="/" className={`nav-item ${pathname === '/' ? 'active' : ''}`}>
+          <LayoutDashboard size={20} strokeWidth={pathname === '/' ? 2.5 : 2} />
+          <span>Dashboard</span>
         </Link>
-        <Link href="/scan" className="nav-link">
-          <ScanBarcode size={20} />
-          <span className="hidden-mobile">Scan</span>
+        <Link href="/scan" className={`nav-item ${pathname === '/scan' ? 'active' : ''}`}>
+          <ScanBarcode size={20} strokeWidth={pathname === '/scan' ? 2.5 : 2} />
+          <span>Scan</span>
         </Link>
-        <Link href="/products" className="nav-link">
-          <Settings size={20} />
-          <span className="hidden-mobile">Settings</span>
+        <Link href="/products" className={`nav-item ${pathname === '/products' ? 'active' : ''}`}>
+          <Package size={20} strokeWidth={pathname === '/products' ? 2.5 : 2} />
+          <span>Products</span>
         </Link>
-        <button onClick={handleLogout} className="nav-link btn-logout" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-          <LogOut size={20} />
-        </button>
       </div>
     </nav>
   )

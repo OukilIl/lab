@@ -1,19 +1,14 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
+import { FormEvent, useState } from 'react'
+import { FlaskConical, LogIn } from 'lucide-react'
+import { loginApp } from '@/app/actions/auth'
 import { useRouter } from 'next/navigation'
-import { checkFirstSetup, loginApp } from '@/app/actions/auth'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  useEffect(() => {
-    checkFirstSetup().then(isFirst => {
-      if (isFirst) router.push('/setup')
-    })
-  }, [router])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -26,32 +21,40 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+    } else {
+      router.push('/')
+      router.refresh()
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', padding: '20px' }} className="fade-in">
-      <div className="card" style={{ width: '100%', maxWidth: '380px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h1 className="h1" style={{ fontSize: '1.75rem', marginBottom: '4px', letterSpacing: '-0.02em' }}>LabStock</h1>
-          <p className="text-mute" style={{ fontSize: '0.85rem', fontWeight: 500 }}>Scientific Inventory Manager</p>
+    <div className="auth-container">
+      <div className="surface-card">
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--accent-blue-light)', borderRadius: '50%', marginBottom: '1rem', boxShadow: '0 4px 20px -5px rgba(14, 165, 233, 0.2)' }}>
+            <FlaskConical size={32} color="var(--accent-blue)" />
+          </div>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>LabStock Access</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Please enter your credentials to manage laboratory inventory.</p>
         </div>
 
-        {error && <div style={{ color: 'var(--color-danger)', marginBottom: '1.5rem', padding: '12px', background: '#fef2f2', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', fontWeight: 500, border: '1px solid #fee2e2' }}>{error}</div>}
-        
+        {error && (
+          <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: 'var(--status-danger-bg)', color: 'var(--status-danger)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="username">Username</label>
-            <input id="username" name="username" type="text" required placeholder="admin" />
+            <label>Identifier</label>
+            <input name="username" type="text" required placeholder="User ID" />
           </div>
-          
           <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" required placeholder="••••••••" />
+            <label>Passkey</label>
+            <input name="password" type="password" required placeholder="••••••••" />
           </div>
-          
-          <button type="submit" className="btn btn-accent" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
-            {loading ? 'Authenticating...' : 'Sign In'}
+          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
+            <LogIn size={18} /> {loading ? 'Authenticating...' : 'Secure Login'}
           </button>
         </form>
       </div>

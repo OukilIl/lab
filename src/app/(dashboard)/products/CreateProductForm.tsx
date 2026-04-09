@@ -36,11 +36,10 @@ export function CreateProductForm() {
         const gtinIdx = textToParse.indexOf('01')
         setGtin(textToParse.substring(gtinIdx + 2, gtinIdx + 16))
       } else {
-        // Fallback for simple 1D barcodes that are purely the GTIN or UPC
         setGtin(textToParse)
       }
       
-      setScannerOpen(false) // Close scanner after successful scan
+      setScannerOpen(false)
       if (scanner) scanner.clear().catch(console.error)
     }
 
@@ -70,24 +69,23 @@ export function CreateProductForm() {
   }
 
   return (
-    <div className="card" style={{ position: 'sticky', top: '100px' }}>
-      <h2 className="h2" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Plus size={20} color="var(--accent-blue)" />
-        New Product
+    <div className="surface-card" style={{ maxWidth: '100%', position: 'sticky', top: '100px' }}>
+      <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+        <Plus size={20} color="var(--accent-blue)" /> Product Blueprint
       </h2>
       
-      {error && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', padding: '10px', background: '#fef2f2', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', fontWeight: 500 }}>{error}</div>}
+      {error && <div style={{ color: 'var(--status-danger)', marginBottom: '1rem', padding: '0.75rem', background: 'var(--status-danger-bg)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>{error}</div>}
 
       <div style={{ marginBottom: '1.5rem' }}>
         {!scannerOpen ? (
-          <button type="button" onClick={() => setScannerOpen(true)} className="btn btn-primary" style={{ width: '100%' }}>
-            <Camera size={18} color="var(--accent-blue)" /> Scan to Auto-fill GTIN
+          <button type="button" onClick={() => setScannerOpen(true)} className="btn-secondary">
+            <Camera size={18} /> Auto-Scan GTIN
           </button>
         ) : (
-          <div style={{ padding: '8px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)' }}>
-            <div id="product-reader" style={{ width: '100%', border: 'none', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}></div>
-            <button type="button" onClick={() => setScannerOpen(false)} className="btn" style={{ width: '100%', marginTop: '8px', color: 'var(--color-danger)' }}>
-              <CameraOff size={18} /> Close Scanner
+          <div style={{ padding: '0.5rem', border: '1px solid var(--border-delicate)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)' }}>
+            <div id="product-reader" style={{ width: '100%', border: 'none' }}></div>
+            <button type="button" onClick={() => setScannerOpen(false)} className="btn-primary" style={{ marginTop: '0.5rem', background: 'var(--status-danger)' }}>
+              <CameraOff size={18} /> Close Viewfinder
             </button>
           </div>
         )}
@@ -95,32 +93,29 @@ export function CreateProductForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <label>GTIN / Identifier</label>
-          <input name="gtin" type="text" required placeholder="0038000494002" value={gtin} onChange={e => setGtin(e.target.value)} />
+          <label>Global Trade Item Number</label>
+          <input name="gtin" type="text" required placeholder="e.g. 0038000494002" value={gtin} onChange={e => setGtin(e.target.value)} />
         </div>
         <div className="input-group">
-          <label>Product Name</label>
-          <input name="name" type="text" required placeholder="Lab Reagent A" />
+          <label>Product Nomenclature</label>
+          <input name="name" type="text" required placeholder="e.g. Morphine 10mg" />
         </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div className="input-group">
-            <label>Target Stock</label>
+            <label>Target Level</label>
             <input name="targetStock" type="number" defaultValue="100" required />
           </div>
           <div className="input-group">
-            <label>Low Alert %</label>
+            <label>Warning %</label>
             <input name="lowStockThresholdPct" type="number" defaultValue="20" required />
           </div>
         </div>
-
         <div className="input-group">
-          <label>Expiry Warning Days</label>
+          <label>Spoilage Warning (Days)</label>
           <input name="expirationWarningDays" type="number" defaultValue="30" required />
         </div>
-        
-        <button type="submit" className="btn btn-accent" style={{ width: '100%', marginTop: '8px' }} disabled={loading}>
-          {loading ? 'Adding...' : 'Register Product'}
+        <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
+          {loading ? 'Committing...' : 'Establish Blueprint'}
         </button>
       </form>
     </div>
