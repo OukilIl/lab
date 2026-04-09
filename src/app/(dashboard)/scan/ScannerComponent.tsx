@@ -96,7 +96,7 @@ export function ScannerComponent() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '2rem' }}>
       <div className="surface-card" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ padding: '1.25rem', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-delicate)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
           <Camera size={18} color="var(--text-secondary)" /> Viewfinder
@@ -140,17 +140,17 @@ export function ScannerComponent() {
             <label>Extracted GTIN Identifier</label>
             <input name="gtin" type="text" value={gtin} onChange={e => setGtin(e.target.value)} required placeholder="Required" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-group">
+          <div className="form-row-split">
+            <div className="input-group" style={{ marginBottom: 0 }}>
               <label>Encoded Batch</label>
               <input name="batchNumber" type="text" value={batchNumber} onChange={e => setBatchNumber(e.target.value)} required placeholder="Required" />
             </div>
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: 0 }}>
               <label>Expiration</label>
               <input name="expirationDate" type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} required />
             </div>
           </div>
-          <div className="input-group">
+          <div className="input-group" style={{ marginTop: '1.25rem' }}>
             <label>Quantity Count</label>
             <input name="quantity" type="number" defaultValue="1" min="1" required />
           </div>

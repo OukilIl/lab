@@ -334,3 +334,33 @@ a {
     display: inline;
   }
 }
+
+.responsive-grid-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: flex-start;
+}
+@media (min-width: 900px) {
+  .responsive-grid-sidebar {
+    flex-direction: row;
+  }
+  .responsive-grid-sidebar > *:first-child {
+    flex: 0 0 350px;
+    max-width: 350px;
+  }
+  .responsive-grid-sidebar > *:last-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.form-row-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.form-row-split > * {
+  flex: 1 1 130px;
+  min-width: 0;
+}

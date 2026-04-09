@@ -22,7 +22,7 @@ export default async function ProductsPage() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Configure tracking goals and log discrete medicine usage.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 350px) 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div className="responsive-grid-sidebar">
         <CreateProductForm />
 
         <div>

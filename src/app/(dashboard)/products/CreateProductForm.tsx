@@ -100,17 +100,17 @@ export function CreateProductForm() {
           <label>Product Nomenclature</label>
           <input name="name" type="text" required placeholder="e.g. Morphine 10mg" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          <div className="input-group">
+        <div className="form-row-split">
+          <div className="input-group" style={{ marginBottom: 0 }}>
             <label>Target Level</label>
             <input name="targetStock" type="number" defaultValue="100" required />
           </div>
-          <div className="input-group">
+          <div className="input-group" style={{ marginBottom: 0 }}>
             <label>Warning %</label>
             <input name="lowStockThresholdPct" type="number" defaultValue="20" required />
           </div>
         </div>
-        <div className="input-group">
+        <div className="input-group" style={{ marginTop: '1.25rem' }}>
           <label>Spoilage Warning (Days)</label>
           <input name="expirationWarningDays" type="number" defaultValue="30" required />
         </div>
