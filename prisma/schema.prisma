@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  username     String     @unique
+  passwordHash String
+  logs         UsageLog[]
+}
+
+model Product {
+  id                    String           @id @default(uuid())
+  gtin                  String           @unique
+  name                  String
+  targetStock           Int              @default(100)
+  lowStockThresholdPct  Int              @default(20) // Alert when stock <= 20% of target
+  expirationWarningDays Int              @default(30)
+  inventoryBatches      InventoryBatch[]
+}
+
+model InventoryBatch {
+  id              String     @id @default(uuid())
+  gtin            String
+  product         Product    @relation(fields: [gtin], references: [gtin])
+  batchNumber     String
+  expirationDate  DateTime
+  addedDate       DateTime   @default(now())
+  initialQuantity Int
+  currentQuantity Int
+  producer        String?
+  notes           String?
+  usageLogs       UsageLog[]
+
+  @@unique([gtin, batchNumber])
+}
+
+model UsageLog {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  inventoryBatchId String
+  inventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id])
+  quantityUsed     Int
+  date             DateTime       @default(now())
+}
