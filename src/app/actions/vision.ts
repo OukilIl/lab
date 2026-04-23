@@ -2,6 +2,10 @@
 
 import sharp from 'sharp'
 import { MultiFormatReader, BarcodeFormat, DecodeHintType, BinaryBitmap, HybridBinarizer, RGBLuminanceSource } from '@zxing/library'
+import { execSync } from 'child_process'
+import { unlinkSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
 
 const reader = new MultiFormatReader()
 const hints = new Map()
@@ -21,7 +25,11 @@ export async function decodeBarcodeAction(formData: FormData) {
   try {
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     
-    // Pass 1: Standard
+    // Pass 0: Native dmtxread (Professional grade DataMatrix detection)
+    const nativeResult = await attemptNativeDecode(buffer)
+    if (nativeResult) return { success: true, ...nativeResult, pass: 'native-dmtx' }
+
+    // Pass 1: Original (standard grayscale)
     let result = await attemptDecode(buffer, 'standard')
     if (result) return { success: true, ...result }
 
@@ -38,6 +46,27 @@ export async function decodeBarcodeAction(formData: FormData) {
     console.error('Vision Action Error:', error)
     return { error: 'Optical processing failed: ' + error.message }
   }
+}
+
+async function attemptNativeDecode(buffer: Buffer) {
+  const tempPath = join(tmpdir(), `scan-${Date.now()}.png`)
+  try {
+    // We use sharp to ensure the image is in a format dmtxread likes (PNG/JPG)
+    await sharp(buffer).toFile(tempPath)
+    
+    // Try to run dmtxread (must be in PATH)
+    const cmd = `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" && dmtxread "${tempPath}"`
+    const output = execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    
+    if (output && output.trim()) {
+      return parseBarcode(output.trim())
+    }
+  } catch (e) {
+    // dmtxread returns non-zero exit code if no barcode found
+  } finally {
+    try { unlinkSync(tempPath) } catch (e) {}
+  }
+  return null
 }
 
 async function attemptDecode(buffer: Buffer, mode: 'standard' | 'high-contrast' | 'sharp') {
@@ -84,57 +113,67 @@ interface ParsedBarcode {
 
 // ─── GS1 Parser (AI-based) ──────────────────────────────────────
 function parseGS1(text: string): ParsedBarcode {
-  let cleanText = text.replace(/[\(\)]/g, '')
+  // Strip parentheses and any hidden control characters
+  let cleanText = text.replace(/[\(\)]/g, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '')
 
   let gtin = ''
   let exp = ''
   let batch = ''
 
-  // AI 01 -> GTIN (14 digits)
-  if (cleanText.includes('01') && cleanText.length >= 16) {
-    const idx = cleanText.indexOf('01')
-    gtin = cleanText.substring(idx + 2, idx + 16)
-  } else if (cleanText.length === 14 || cleanText.length === 13) {
+  let i = 0
+  while (i < cleanText.length) {
+    const remaining = cleanText.substring(i)
+    
+    if (remaining.startsWith('01')) {
+      // GTIN - Fixed length 14
+      gtin = remaining.substring(2, 16)
+      i += 16
+    } else if (remaining.startsWith('17')) {
+      // Expiry - Fixed length 6 (YYMMDD)
+      const expRaw = remaining.substring(2, 8)
+      if (expRaw.length === 6) {
+        let year = "20" + expRaw.substring(0, 2)
+        let month = expRaw.substring(2, 4)
+        let day = expRaw.substring(4, 6)
+        if (day === "00") day = "01"
+        exp = `${year}-${month}-${day}`
+      }
+      i += 8
+    } else if (remaining.startsWith('10')) {
+      // Batch/Lot - Variable length
+      const lotData = remaining.substring(2)
+      // Look for next AI candidates (17, 21, 01)
+      const nextAIIdx = lotData.search(/17|21|01/)
+      if (nextAIIdx !== -1) {
+        batch = lotData.substring(0, nextAIIdx)
+        i += 2 + nextAIIdx
+      } else {
+        batch = lotData
+        i = cleanText.length
+      }
+    } else if (remaining.startsWith('21')) {
+      // Serial Number - Variable length
+      const snData = remaining.substring(2)
+      const nextAIIdx = snData.search(/01|17|10/)
+      if (nextAIIdx !== -1) {
+        i += 2 + nextAIIdx
+      } else {
+        i = cleanText.length
+      }
+    } else {
+      i++
+    }
+  }
+
+  // Fallback for simple GTIN-only strings
+  if (!gtin && (cleanText.length === 14 || cleanText.length === 13)) {
     gtin = cleanText
-  }
-
-  // AI 17 -> Expiry YYMMDD
-  if (cleanText.includes('17')) {
-    const idx = cleanText.indexOf('17')
-    const expRaw = cleanText.substring(idx + 2, idx + 8)
-    if (expRaw.length === 6) {
-      let year = "20" + expRaw.substring(0, 2)
-      let month = expRaw.substring(2, 4)
-      let day = expRaw.substring(4, 6)
-      if (day === "00") day = "01"
-      exp = `${year}-${month}-${day}`
-    }
-  }
-
-  // AI 10 -> Batch/Lot (variable length, up to 20 chars)
-  if (cleanText.includes('10')) {
-    const idx = cleanText.indexOf('10')
-    batch = cleanText.substring(idx + 2, Math.min(idx + 22, cleanText.length))
-    const nextAI = batch.search(/17|21|01/)
-    if (nextAI !== -1) {
-      batch = batch.substring(0, nextAI)
-    }
   }
 
   return { gtin, batch, expirationDate: exp, raw: text, format: 'GS1' }
 }
 
 // ─── HIBC Parser (EU IVDR / UDI compatible) ─────────────────────
-// Structure: +<LIC><ProductCode>/<SecondaryData><CheckDigit>
-//
-// Secondary data date formats (flagged by $$ prefix):
-//   $$2MMDDYY   -> Date format 2
-//   $$3YYMMDD   -> Date format 3
-//   $$4YYMMDDHH -> Date format 4
-//   $$5YYJJJ    -> Date format 5 (Julian)
-//   $$6YYYYMMDD -> Date format 6
-//
-// After the date, the remaining chars (until the check digit) are the lot/batch.
 function parseHIBC(text: string): ParsedBarcode {
   // Strip the leading + and trailing check digit (Mod43)
   const body = text.substring(1, text.length - 1)
@@ -146,25 +185,19 @@ function parseHIBC(text: string): ParsedBarcode {
   const slashIdx = body.indexOf('/')
   
   if (slashIdx === -1) {
-    // No secondary data, entire body is the primary identifier
     gtin = body
     return { gtin, batch, expirationDate: exp, raw: text, format: 'HIBC' }
   }
 
-  // Primary: LIC (4 chars) + Product/Catalog code
   gtin = body.substring(0, slashIdx)
-
-  // Secondary: everything after the slash
   let secondary = body.substring(slashIdx + 1)
 
-  // Check for date flag "$$" followed by format digit
   if (secondary.startsWith('$$') && secondary.length >= 3) {
     const formatFlag = secondary.charAt(2)
     secondary = secondary.substring(3)
 
     switch (formatFlag) {
       case '2': {
-        // MMDDYY
         if (secondary.length >= 6) {
           const mm = secondary.substring(0, 2)
           const dd = secondary.substring(2, 4)
@@ -175,7 +208,6 @@ function parseHIBC(text: string): ParsedBarcode {
         break
       }
       case '3': {
-        // YYMMDD
         if (secondary.length >= 6) {
           const yy = secondary.substring(0, 2)
           const mm = secondary.substring(2, 4)
@@ -186,7 +218,6 @@ function parseHIBC(text: string): ParsedBarcode {
         break
       }
       case '4': {
-        // YYMMDDHH
         if (secondary.length >= 8) {
           const yy = secondary.substring(0, 2)
           const mm = secondary.substring(2, 4)
@@ -197,7 +228,6 @@ function parseHIBC(text: string): ParsedBarcode {
         break
       }
       case '5': {
-        // YYJJJ (Julian date)
         if (secondary.length >= 5) {
           const yy = parseInt(secondary.substring(0, 2))
           const jjj = parseInt(secondary.substring(2, 5))
@@ -208,7 +238,6 @@ function parseHIBC(text: string): ParsedBarcode {
         break
       }
       case '6': {
-        // YYYYMMDD
         if (secondary.length >= 8) {
           const yyyy = secondary.substring(0, 4)
           const mm = secondary.substring(4, 6)
@@ -219,20 +248,15 @@ function parseHIBC(text: string): ParsedBarcode {
         break
       }
       default: {
-        // Unknown date format flag, treat everything as batch
         batch = formatFlag + secondary
       }
     }
   } else if (secondary.startsWith('$')) {
-    // Single $ prefix: lot number only, no date
     batch = secondary.substring(1)
   } else {
-    // No special prefix, treat as lot number
     batch = secondary
   }
 
-  // Trim any trailing whitespace from batch
   batch = batch.trim()
-
   return { gtin, batch, expirationDate: exp, raw: text, format: 'HIBC' }
 }
