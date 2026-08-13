@@ -8,9 +8,16 @@ const config: CapacitorConfig = {
   // HTML straight into this directory.
   webDir: '.next-mobile',
 
-  // The WebView's own background, visible for a frame at launch and in any
-  // overscroll gap. Default is white, which flashes against the dark UI.
-  backgroundColor: '#060b16',
+  // NOTE: `backgroundColor` is deliberately NOT set here.
+  //
+  // It paints the native WebView's own background, a layer beneath the page
+  // that CSS cannot reach. The ML Kit scanner makes that view transparent so
+  // its camera preview (which sits behind the WebView) shows through — but a
+  // configured backgroundColor is reapplied over it, so the scan window shows
+  // the app background instead of the camera, no matter what the CSS does.
+  //
+  // The launch flash it was added to hide is handled by the splash screen and
+  // by the page painting its own background immediately.
 
   server: {
     // Android serves the bundle over http://localhost rather than file://,

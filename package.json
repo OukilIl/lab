@@ -14,6 +14,8 @@
     "test:images": "node --experimental-strip-types scripts/test-images.mjs",
     "//test:scan-window": "Renders the native scan view and asserts the camera is visible only inside the scan window. Needs a running server (npm run serve).",
     "test:scan-window": "node scripts/preview-scan.mjs /tmp/labstock-scan.png && node scripts/check-scan-window.mjs /tmp/labstock-scan.png",
+    "//test:scan-inventory": "Same check for the scan sheet opened from the Inventory page, which renders over another page.",
+    "test:scan-inventory": "node scripts/preview-inventory-scan.mjs /tmp/labstock-inv-scan.png && node scripts/check-scan-window.mjs /tmp/labstock-inv-scan.png",
     "build:mobile": "node scripts/build-mobile.mjs",
     "sync": "npm run build:mobile && npm run cap:sync",
     "sync:android": "npm run build:mobile && cap sync android",

@@ -11,7 +11,8 @@
  * both what works and what the user already recognises.
  */
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CameraOff, Flashlight, X } from 'lucide-react'
 
 import { useScanner, type ScanHit } from '@/lib/scanner/useScanner'
@@ -26,6 +27,11 @@ export function ScanModal({
   onClose: () => void
 }) {
   const { t } = useI18n()
+  // Portalled to <body> so it is not a child of .app-main, which gets hidden
+  // while the sheet is open. Mount state guards against SSR, where there is
+  // no document to portal into.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const handleHit = useCallback(
     (hit: ScanHit) => {
@@ -40,8 +46,13 @@ export function ScanModal({
   const { state, videoRef, start, stop, toggleTorch, pulse } = useScanner(handleHit)
 
   useEffect(() => {
+    // Hide the page underneath: with the sheet transparent for the camera,
+    // anything still rendered behind it shows through the scan window.
+    document.body.classList.add('scan-sheet-open')
     void start()
+
     return () => {
+      document.body.classList.remove('scan-sheet-open')
       void stop()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,7 +69,9 @@ export function ScanModal({
 
   const scanning = state.active && !state.error
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <div className="scan-sheet" role="dialog" aria-modal="true" aria-label={t('scanBarcode')}>
       <div className="scanner-frame scan-sheet-frame">
         <video ref={videoRef} autoPlay playsInline muted />
@@ -117,6 +130,7 @@ export function ScanModal({
           {t('cancel')}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

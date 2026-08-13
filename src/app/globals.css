@@ -1176,6 +1176,17 @@ body.scanner-active .scan-sheet {
   background: transparent;
 }
 
+/* The sheet opens on top of the Inventory page, which keeps rendering behind
+   it. With the sheet transparent, the scan window would reveal that page —
+   its form fields, scrollable — instead of the camera. `scan-sheet-open` is
+   set on <body> while the sheet is mounted so the page behind it is hidden,
+   leaving nothing between the window and the preview.
+   (A class rather than :has(), which is unreliable in older WKWebViews.) */
+body.scan-sheet-open .app-main,
+body.scan-sheet-open .app-nav {
+  visibility: hidden;
+}
+
 body.scanner-active .scan-sheet-frame {
   background: transparent !important;
 }
