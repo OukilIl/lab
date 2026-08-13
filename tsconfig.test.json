@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The Node test runner strips types and resolves the real `.ts` paths,
+    // so test imports keep their extension. The app build must not.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src/core/**/*.ts"],
+  "exclude": ["node_modules"]
+}

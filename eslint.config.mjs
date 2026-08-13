@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Mobile build output and the generated native projects. The copies of the
+    // web bundle under ios/ and android/ are build artefacts, not source.
+    ".next-mobile/**",
+    ".api-stash/**",
+    "ios/**",
+    "android/**",
   ]),
 ]);
 

@@ -1,5 +1,9 @@
 import { MetadataRoute } from 'next'
 
+// Required for `output: 'export'`: the manifest is generated once at build
+// time rather than served per request.
+export const dynamic = 'force-static'
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Lab Inventory Manager',

@@ -1,14 +1,17 @@
+import type { ReactNode } from 'react'
+
+import { AppGate } from '@/components/AppGate'
 import { NavBar } from './NavBar'
 import { TopHeader } from './TopHeader'
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <TopHeader />
-      <NavBar />
-      <main className="main-content" style={{ flex: 1, width: '100%' }}>
-        {children}
-      </main>
-    </div>
+    <AppGate>
+      <div className="app-shell">
+        <TopHeader />
+        <NavBar />
+        <main className="app-main page-enter">{children}</main>
+      </div>
+    </AppGate>
   )
 }

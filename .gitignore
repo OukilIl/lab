@@ -42,3 +42,24 @@ next-env.d.ts
 
 /src/generated/prisma
 /dev.db
+/dev.db-shm
+/dev.db-wal
+
+# mobile build
+/.next-mobile/
+/.api-stash/
+/out/
+
+# capacitor native projects (generated; keep if you add custom native code)
+/ios/App/Pods/
+/ios/App/App/public/
+/android/app/src/main/assets/public/
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+
+# generated barcode test corpus (regenerate with scripts/make-fixtures.swift
+# and scripts/make-realistic.mjs)
+/test-realistic/
+/test-real/

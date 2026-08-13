@@ -1,124 +1,162 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Camera, CameraOff } from 'lucide-react'
-import { addProduct } from '@/app/actions/inventory'
-import { Html5QrcodeScanner } from 'html5-qrcode'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
 
-export function CreateProductForm() {
-  const searchParams = useSearchParams()
-  const [gtin, setGtin] = useState(searchParams.get('gtin') || '')
-  const [scannerOpen, setScannerOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+import { useBackend } from '@/lib/data/BackendProvider'
+import { Alert } from '@/components/ui'
 
-  useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
-    
-    if (scannerOpen) {
-      setTimeout(() => {
-        scanner = new Html5QrcodeScanner(
-          "product-reader",
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          /* verbose= */ false
-        )
-        
-        scanner.render(onScanSuccess, onScanFailure)
-      }, 100)
-    }
+/**
+ * The caller passes `key={initialGtin}`, so arriving from the scanner with a
+ * new ?gtin= remounts this form with the value already in state. That avoids
+ * syncing a prop into state from an effect, which causes a cascading render.
+ */
+export function CreateProductForm({
+  initialGtin,
+  onCreated,
+}: {
+  initialGtin: string
+  onCreated: () => void
+}) {
+  const { backend } = useBackend()
 
-    function onScanSuccess(decodedText: string) {
-      let textToParse = decodedText.replace(/[\(\)]/g, '')
+  const [gtin, setGtin] = useState(initialGtin)
+  const [name, setName] = useState('')
+  const [targetStock, setTargetStock] = useState('100')
+  const [thresholdPct, setThresholdPct] = useState('20')
+  const [warningDays, setWarningDays] = useState('30')
 
-      if (textToParse.includes('01') && textToParse.length >= 16) {
-        const gtinIdx = textToParse.indexOf('01')
-        setGtin(textToParse.substring(gtinIdx + 2, gtinIdx + 16))
-      } else {
-        setGtin(textToParse)
-      }
-      
-      setScannerOpen(false)
-      if (scanner) scanner.clear().catch(console.error)
-    }
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ tone: 'ok' | 'danger'; text: string } | null>(null)
 
-    function onScanFailure() { /* ignore */ }
-
-    return () => {
-      if (scanner) scanner.clear().catch(console.error)
-    }
-  }, [scannerOpen])
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
-    
-    const form = e.currentTarget
-    const formData = new FormData(form)
-    const result = await addProduct(formData)
-    
-    if (result?.error) {
-      setError(result.error)
-    } else {
-      setGtin('')
-      form.reset()
-      router.refresh()
+    if (!backend) return
+
+    setBusy(true)
+    setMessage(null)
+
+    const result = await backend.createProduct({
+      gtin: gtin.trim(),
+      name: name.trim(),
+      targetStock: parseInt(targetStock, 10) || 0,
+      lowStockThresholdPct: parseInt(thresholdPct, 10) || 0,
+      expirationWarningDays: parseInt(warningDays, 10) || 0,
+    })
+
+    setBusy(false)
+
+    if (!result.ok) {
+      setMessage({ tone: 'danger', text: result.error })
+      return
     }
-    setLoading(false)
+
+    setMessage({ tone: 'ok', text: `"${result.data.name}" added.` })
+    setGtin('')
+    setName('')
+    onCreated()
   }
 
   return (
-    <div className="surface-card" style={{ maxWidth: '100%', position: 'sticky', top: '100px' }}>
-      <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
-        <Plus size={20} color="var(--accent-blue)" /> Product Blueprint
-      </h2>
-      
-      {error && <div style={{ color: 'var(--status-danger)', marginBottom: '1rem', padding: '0.75rem', background: 'var(--status-danger-bg)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem' }}>{error}</div>}
-
-      <div style={{ marginBottom: '1.5rem' }}>
-        {!scannerOpen ? (
-          <button type="button" onClick={() => setScannerOpen(true)} className="btn-secondary">
-            <Camera size={18} /> Auto-Scan GTIN
-          </button>
-        ) : (
-          <div style={{ padding: '0.5rem', border: '1px solid var(--border-delicate)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)' }}>
-            <div id="product-reader" style={{ width: '100%', border: 'none' }}></div>
-            <button type="button" onClick={() => setScannerOpen(false)} className="btn-primary" style={{ marginTop: '0.5rem', background: 'var(--status-danger)' }}>
-              <CameraOff size={18} /> Close Viewfinder
-            </button>
-          </div>
-        )}
+    <div className="card">
+      <div className="card-head">
+        <h2>
+          <Plus size={17} style={{ color: 'var(--accent)' }} /> New product
+        </h2>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label>Global Trade Item Number</label>
-          <input name="gtin" type="text" required placeholder="e.g. 0038000494002" value={gtin} onChange={e => setGtin(e.target.value)} />
-        </div>
-        <div className="input-group">
-          <label>Product Nomenclature</label>
-          <input name="name" type="text" required placeholder="e.g. Morphine 10mg" />
-        </div>
-        <div className="form-row-split">
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label>Target Level</label>
-            <input name="targetStock" type="number" defaultValue="100" required />
+      <div className="card-body">
+        {message && (
+          <div style={{ marginBottom: 14 }}>
+            <Alert tone={message.tone}>{message.text}</Alert>
           </div>
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label>Warning %</label>
-            <input name="lowStockThresholdPct" type="number" defaultValue="20" required />
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="p-gtin">GTIN</label>
+            <input
+              id="p-gtin"
+              className="mono"
+              inputMode="numeric"
+              autoComplete="off"
+              required
+              value={gtin}
+              onChange={(e) => setGtin(e.target.value)}
+              placeholder="03453120000011"
+            />
+            <span className="hint">The barcode number identifying this product.</span>
           </div>
-        </div>
-        <div className="input-group" style={{ marginTop: '1.25rem' }}>
-          <label>Spoilage Warning (Days)</label>
-          <input name="expirationWarningDays" type="number" defaultValue="30" required />
-        </div>
-        <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
-          {loading ? 'Committing...' : 'Establish Blueprint'}
-        </button>
-      </form>
+
+          <div className="field">
+            <label htmlFor="p-name">Name</label>
+            <input
+              id="p-name"
+              autoComplete="off"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Sterile pipette tips 200µL"
+            />
+          </div>
+
+          <div className="field-row">
+            <div className="field">
+              <label htmlFor="p-target">Target stock</label>
+              <input
+                id="p-target"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                required
+                value={targetStock}
+                onChange={(e) => setTargetStock(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="p-threshold">Low at %</label>
+              <input
+                id="p-threshold"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={100}
+                required
+                value={thresholdPct}
+                onChange={(e) => setThresholdPct(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="p-warning">Expiry warning (days)</label>
+            <input
+              id="p-warning"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={3650}
+              required
+              value={warningDays}
+              onChange={(e) => setWarningDays(e.target.value)}
+            />
+            <span className="hint">Flag batches this many days before they expire.</span>
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? (
+              <>
+                <span className="spinner" /> Adding
+              </>
+            ) : (
+              <>
+                <Plus size={17} /> Add product
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

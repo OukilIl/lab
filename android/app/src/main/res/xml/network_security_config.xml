@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android blocks plaintext HTTP by default. LabStock servers run on a trusted
+  local network without a TLS certificate, so HTTP is permitted only for
+  private address ranges — public hosts still require HTTPS.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Loopback: the Capacitor bundle itself. -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+
+        <!-- RFC 1918 private ranges, where a lab server lives. -->
+        <domain includeSubdomains="true">192.168.0.0/16</domain>
+        <domain includeSubdomains="true">10.0.0.0/8</domain>
+        <domain includeSubdomains="true">172.16.0.0/12</domain>
+
+        <!-- mDNS names, e.g. lab-server.local -->
+        <domain includeSubdomains="true">local</domain>
+    </domain-config>
+</network-security-config>
