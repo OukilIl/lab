@@ -41,7 +41,7 @@ interface Feedback {
 
 export function ScannerScreen() {
   const router = useRouter()
-  const { backend, settings, invalidate } = useBackend()
+  const { backend, settings, invalidate, revision } = useBackend()
   const { t } = useI18n()
 
   const [tab, setTab] = useState<Tab>('camera')
@@ -57,6 +57,17 @@ export function ScannerScreen() {
   const [flash, setFlash] = useState(false)
   const [saving, setSaving] = useState(false)
   const [manualBusy, setManualBusy] = useState(false)
+
+  /**
+   * Whether a product already exists for the current GTIN.
+   *
+   * `null` while unknown (empty or still checking). Knowing this up front
+   * lets one button do the whole job — "Add to inventory" for a known
+   * product, "Create product and add to inventory" for a new one — instead of
+   * failing after submit and sending the user to another screen.
+   */
+  const [productExists, setProductExists] = useState<boolean | null>(null)
+  const [productName, setProductName] = useState('')
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -107,6 +118,31 @@ export function ScannerScreen() {
     }
   }, [])
 
+  // Look the GTIN up so the submit button can say what it will actually do.
+  // Debounced, because this also runs while the user types by hand.
+  useEffect(() => {
+    const value = gtin.trim()
+    if (!backend || !value) {
+      setProductExists(null)
+      return
+    }
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      const res = await backend.getProduct(value)
+      if (cancelled) return
+      // On a lookup failure, assume it exists: addBatch still reports
+      // PRODUCT_NOT_FOUND, so the worst case is the old behaviour rather
+      // than silently creating a duplicate product.
+      setProductExists(res.ok ? res.data !== null : true)
+    }, 300)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [gtin, backend, revision])
+
   async function handleManualCapture() {
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -156,8 +192,29 @@ export function ScannerScreen() {
     setSaving(true)
     setFeedback(null)
 
+    const trimmedGtin = gtin.trim()
+
+    // Unknown GTIN: create the product first so one action completes the whole
+    // job, instead of failing and making the user go elsewhere and come back.
+    if (productExists === false) {
+      const created = await backend.createProduct({
+        gtin: trimmedGtin,
+        name: productName.trim(),
+        targetStock: 100,
+        lowStockThresholdPct: 20,
+        expirationWarningDays: 30,
+      })
+
+      if (!created.ok) {
+        setSaving(false)
+        setFeedback({ tone: 'danger', text: created.error })
+        return
+      }
+      setProductExists(true)
+    }
+
     const result = await backend.addBatch({
-      gtin: gtin.trim(),
+      gtin: trimmedGtin,
       batchNumber: batchNumber.trim(),
       expirationDate,
       quantity: parseInt(quantity, 10) || 0,
@@ -170,7 +227,7 @@ export function ScannerScreen() {
       setFeedback({
         tone: 'danger',
         text: result.error,
-        missingGtin: result.code === 'PRODUCT_NOT_FOUND' ? gtin.trim() : undefined,
+        missingGtin: result.code === 'PRODUCT_NOT_FOUND' ? trimmedGtin : undefined,
       })
       return
     }
@@ -183,6 +240,7 @@ export function ScannerScreen() {
     setExpirationDate('')
     setQuantity('1')
     setNotes('')
+    setProductName('')
     setLastScan(null)
     invalidate()
   }
@@ -220,6 +278,8 @@ export function ScannerScreen() {
         <Alert
           tone={feedback.tone}
           action={
+            // Only a fallback now: the form creates unknown products inline,
+            // so this appears solely if the lookup was wrong about existence.
             feedback.missingGtin ? (
               <button
                 className="btn btn-primary btn-sm"
@@ -358,6 +418,29 @@ export function ScannerScreen() {
                 />
               </div>
 
+              {/* A barcode carries no product name, so ask for one — but only
+                  when this GTIN is genuinely new. */}
+              {productExists === false && (
+                <>
+                  <div style={{ marginBottom: 14 }}>
+                    <Alert tone="info">{t('newProductNotice')}</Alert>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="product-name">{t('productName')}</label>
+                    <input
+                      id="product-name"
+                      name="productName"
+                      autoComplete="off"
+                      required
+                      value={productName}
+                      onChange={(e) => setProductName(e.target.value)}
+                      placeholder={t('namePlaceholder')}
+                    />
+                    <span className="hint">{t('productNameHint')}</span>
+                  </div>
+                </>
+              )}
+
               <div className="field-row">
                 <div className="field">
                   <label htmlFor="batch">{t('lotBatch')}</label>
@@ -411,10 +494,16 @@ export function ScannerScreen() {
                 />
               </div>
 
+              {/* The label states exactly what the button will do, so an
+                  unknown GTIN no longer fails after submit. */}
               <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={saving}>
                 {saving ? (
                   <>
                     <span className="spinner" /> {t('saving')}
+                  </>
+                ) : productExists === false ? (
+                  <>
+                    <PackagePlus size={18} /> {t('createAndAdd')}
                   </>
                 ) : (
                   t('addToInventory')

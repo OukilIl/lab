@@ -34,7 +34,12 @@ export function preflight(): NextResponse {
 
 /** Map a domain Result onto an HTTP response. */
 export function respond<T>(result: Result<T>): NextResponse {
-  if (result.ok) return json(result.data ?? { success: true })
+  if (result.ok) {
+    // `null` is a meaningful value — getProduct returns it for "no such
+    // product" — so only `undefined` (a void result) becomes {success:true}.
+    // Coalescing null too made every missing-product lookup look like a hit.
+    return json(result.data === undefined ? { success: true } : result.data)
+  }
 
   const status =
     result.code === 'NOT_FOUND' || result.code === 'PRODUCT_NOT_FOUND'
