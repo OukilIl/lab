@@ -1,7 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Languages, Monitor, Moon, RotateCcw, Server, Smartphone, Sun, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Languages,
+  LogOut,
+  Monitor,
+  Moon,
+  RotateCcw,
+  Server,
+  Settings2,
+  Smartphone,
+  Sun,
+  Trash2,
+} from 'lucide-react'
 
 import { useBackend } from '@/lib/data/BackendProvider'
 import { useI18n } from '@/lib/i18n/I18nProvider'
@@ -16,7 +28,7 @@ const THEME_KEY = 'labstock.theme'
 type Confirm = null | 'reset' | 'wipe'
 
 export function SettingsScreen() {
-  const { settings, resetSettings, backend, invalidate } = useBackend()
+  const { settings, resetSettings, backend, invalidate, user, logout, configure } = useBackend()
   const { t, language, setLanguage } = useI18n()
 
   const [theme, setTheme] = useState<Theme>(() => {
@@ -136,18 +148,35 @@ export function SettingsScreen() {
         <div className="card-head">
           <h2>{t('connection')}</h2>
         </div>
-        <div className="card-body">
-          <div className="setting-row">
+        <div className="card-body stack stack-3">
+          <div className="setting-row" style={{ borderBottom: 'none', padding: 0 }}>
             <div>
               <div className="setting-label row" style={{ gap: 7 }}>
                 {isLocal ? <Smartphone size={15} /> : <Server size={15} />}
                 {isLocal ? t('storageLocal') : t('storageServer')}
+                {!isLocal && user && (
+                  <span className="badge badge-accent">{user.username}</span>
+                )}
               </div>
               {!isLocal && settings.serverUrl && (
                 <div className="setting-help mono selectable">{settings.serverUrl}</div>
               )}
             </div>
           </div>
+
+          {/* Functions the old top bar used to hold. */}
+          <button
+            className="btn btn-secondary btn-block"
+            onClick={() => void configure({ ...settings, configured: false })}
+          >
+            <Settings2 size={16} /> {t('changeConnection')}
+          </button>
+
+          {!isLocal && user && (
+            <button className="btn btn-secondary btn-block" onClick={() => void logout()}>
+              <LogOut size={16} /> {t('signOut')}
+            </button>
+          )}
         </div>
       </section>
 

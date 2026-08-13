@@ -81,6 +81,16 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
   onHitRef.current = onHit
 
   const activeRef = useRef(false)
+  /**
+   * The user's *intent*, flipped synchronously by start()/stop().
+   *
+   * Starting the native scanner takes several awaits (permissions, module
+   * install, startScan). If the user navigates away mid-flight, stop() runs
+   * before startScan resolves — and the camera then comes up *after* the
+   * page has changed, leaving every other screen transparent over a live
+   * feed. Each await checks this flag and unwinds if intent has flipped.
+   */
+  const wantActiveRef = useRef(false)
   const listenerRef = useRef<{ remove: () => Promise<void> } | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -116,7 +126,11 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
   }, [])
 
   const stop = useCallback(async () => {
+    wantActiveRef.current = false
     activeRef.current = false
+    // Synchronously, before any await: an in-flight start() must never leave
+    // the page transparent after the user has moved on.
+    document.body.classList.remove('scanner-active')
 
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current)
@@ -177,6 +191,9 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
       // Not available on iOS, and non-fatal on Android.
     }
 
+    // Intent may have flipped during the permission/install awaits above.
+    if (!wantActiveRef.current) return true
+
     listenerRef.current = await BarcodeScanner.addListener('barcodesScanned', (event) => {
       if (!activeRef.current) return
       for (const barcode of event.barcodes) {
@@ -201,6 +218,16 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
         BarcodeFormat.UpcE,
       ],
     })
+
+    // The user navigated away while the camera was spinning up: unwind
+    // everything startScan just set in motion.
+    if (!wantActiveRef.current) {
+      await BarcodeScanner.stopScan().catch(() => {})
+      await listenerRef.current?.remove().catch(() => {})
+      listenerRef.current = null
+      document.body.classList.remove('scanner-active')
+      return true
+    }
 
     let torchAvailable = false
     try {
@@ -252,6 +279,12 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
           ? 'Camera access was denied. Allow it in your browser settings and try again.'
           : 'No camera is available on this device.',
       }))
+      return
+    }
+
+    // getUserMedia can take seconds; the user may already be elsewhere.
+    if (!wantActiveRef.current) {
+      for (const track of stream.getTracks()) track.stop()
       return
     }
 
@@ -360,7 +393,8 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
   }, [considerCandidate])
 
   const start = useCallback(async () => {
-    if (activeRef.current) return
+    if (activeRef.current || wantActiveRef.current) return
+    wantActiveRef.current = true
     setState((s) => ({ ...s, starting: true, error: null, permissionDenied: false }))
 
     try {
@@ -376,6 +410,10 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
         starting: false,
         error: e instanceof Error ? e.message : 'The camera could not be started',
       }))
+    } finally {
+      // If the camera did not actually come up (denied, failed, or aborted),
+      // clear the intent so the retry button can start over.
+      if (!activeRef.current) wantActiveRef.current = false
     }
   }, [startNative, startWeb])
 

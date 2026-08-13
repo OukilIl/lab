@@ -1046,19 +1046,30 @@ button { background: none; border: none; cursor: pointer; }
 
 /* ---- Native (ML Kit) preview renders *behind* the WebView ----
    Every layer between the viewport and the camera must be transparent, or it
-   shows as a black rectangle over the feed. */
+   shows as a black rectangle over the feed. While scanning, the frame takes
+   over the whole viewport and its scrim dims everything except the reticle
+   window — so the live feed is visible only where the user is aiming, not
+   bleeding through gaps in the page. */
 body.scanner-active,
 body.scanner-active .app-shell,
 body.scanner-active .app-main {
   background: transparent !important;
 }
 
-/* The card wrapping the viewfinder, and the frame itself. */
-body.scanner-active .scanner-card,
-body.scanner-active .scanner-frame {
+body.scanner-active .scanner-card {
   background: transparent !important;
-  border-color: rgba(255, 255, 255, 0.35);
+  border: none;
   box-shadow: none;
+}
+
+body.scanner-active .scanner-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  border-radius: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  background: transparent !important;
 }
 
 /* The web <video> is unused on native and would paint black over the preview. */
@@ -1066,25 +1077,32 @@ body.scanner-active .scanner-frame video {
   display: none;
 }
 
-/* Text over a live camera feed needs its own contrast, not the page palette. */
-body.scanner-active .scanner-card .card-body,
-body.scanner-active .scanner-card .card-head {
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* Camera controls and status live in the frame's own overlay; the card
+   chrome around it has no job during a native scan. */
+body.scanner-active .scanner-card .card-head,
+body.scanner-active .scanner-card .card-body {
+  display: none;
+}
+
+/* Page furniture (title, tabs, alerts) floats above the dimmed backdrop and
+   stays interactive — the overlay itself ignores pointer events. */
+body.scanner-active .app-main .page-head,
+body.scanner-active .app-main .segmented,
+body.scanner-active .app-main .alert {
+  position: relative;
+  z-index: 20;
+}
+
+body.scanner-active .app-main .page-head h1,
+body.scanner-active .app-main .page-head p {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.16);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
 }
 
-body.scanner-active .scanner-card .card-head h2,
-body.scanner-active .scanner-card .text-muted,
-body.scanner-active .scanner-card .text-xs {
-  color: rgba(255, 255, 255, 0.86) !important;
-}
-
-body.scanner-active .app-header,
 body.scanner-active .app-nav {
-  background: color-mix(in srgb, var(--bg-surface) 55%, transparent);
+  background: color-mix(in srgb, var(--bg-surface) 72%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .scanner-overlay {
@@ -1098,6 +1116,12 @@ body.scanner-active .app-nav {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.42);
+  transition: background var(--t-base) var(--ease-out);
+}
+
+/* Fullscreen native scan: a deeper dim, since page content sits on top. */
+body.scanner-active .scanner-scrim {
+  background: rgba(0, 0, 0, 0.62);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
