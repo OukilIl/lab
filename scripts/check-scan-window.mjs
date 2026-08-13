@@ -63,6 +63,12 @@ const checks = [
   ['outside — below window', 60, win.bottom + 20, false],
   ['outside — top-left corner', 12, 12, false],
   ['outside — bottom-right corner', VIEW_W - 12, VIEW_H - 12, false],
+  // The nav is app chrome: it must stay solid while scanning, including the
+  // home-indicator strip beneath it, on every page.
+  ['nav bar — centre', 195, VIEW_H - 44, false],
+  ['nav bar — left', 40, VIEW_H - 44, false],
+  ['nav bar — right', VIEW_W - 40, VIEW_H - 44, false],
+  ['nav bar — home-indicator strip', 195, VIEW_H - 9, false],
 ]
 
 let failed = 0

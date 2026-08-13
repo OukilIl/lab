@@ -393,11 +393,13 @@ button { background: none; border: none; cursor: pointer; }
 /* ============================ Bottom navigation ============================ */
 
 /* A flex child of the fixed shell, not `position: fixed` itself — that is
-   what stops it drifting during iOS overscroll. */
+   what stops it drifting during iOS overscroll.
+   z-index sits above the fullscreen scan frame (z-index 10) so the bar and
+   its safe-area strip stay solid on every page, scanning included. */
 .app-nav {
   position: relative;
   flex: 0 0 auto;
-  z-index: 45;
+  z-index: 60;
   display: flex;
   justify-content: space-around;
   align-items: stretch;
@@ -1070,10 +1072,23 @@ button { background: none; border: none; cursor: pointer; }
    over the whole viewport and its scrim dims everything except the reticle
    window — so the live feed is visible only where the user is aiming, not
    bleeding through gaps in the page. */
+/* Everything from the document root down must be transparent, or the native
+   preview (which the plugin puts behind the WebView) never reaches the
+   screen. html is the one most easily missed: leaving it opaque makes the
+   scan window show the page background instead of the camera. */
+html.scanner-active,
 body.scanner-active,
 body.scanner-active .app-shell,
-body.scanner-active .app-main {
+body.scanner-active .app-main,
+body.scanner-active .app-main > * {
   background: transparent !important;
+}
+
+/* ...but the nav is app chrome, not content: it stays opaque so the camera
+   never shows through the bar or the home-indicator strip beneath it. */
+body.scanner-active .app-nav,
+body.scanner-active .app-nav::after {
+  background: var(--bg-surface) !important;
 }
 
 body.scanner-active .scanner-card {

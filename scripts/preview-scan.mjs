@@ -124,10 +124,20 @@ try {
     'Runtime.evaluate',
     {
       expression: `
+        // The stand-in camera layer must sit BEHIND the page and survive the
+        // page going fully transparent. html/body are both transparent while
+        // scanning, so the backdrop cannot live on either — it goes in a
+        // fixed element at a negative z-index, which is the closest DOM
+        // equivalent of the native preview behind the WebView.
+        const cam = document.createElement('div');
+        cam.id = 'fake-camera';
+        cam.style.cssText =
+          'position:fixed;inset:0;z-index:-1;' +
+          'background:repeating-linear-gradient(45deg,#e8b04b 0 40px,#3aa0d8 40px 80px)';
+        document.documentElement.appendChild(cam);
+
+        document.documentElement.classList.add('scanner-active');
         document.body.classList.add('scanner-active');
-        document.documentElement.style.background =
-          'repeating-linear-gradient(45deg,#e8b04b 0 40px,#3aa0d8 40px 80px)';
-        document.body.style.background = 'transparent';
 
         // Replace the "camera off" placeholder with the live-scan overlay,
         // which is what renders once a real device has a camera.

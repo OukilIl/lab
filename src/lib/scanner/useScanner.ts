@@ -130,6 +130,7 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
     activeRef.current = false
     // Synchronously, before any await: an in-flight start() must never leave
     // the page transparent after the user has moved on.
+    document.documentElement.classList.remove('scanner-active')
     document.body.classList.remove('scanner-active')
 
     if (rafRef.current !== null) {
@@ -147,7 +148,6 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
       if (Capacitor.isNativePlatform()) {
         const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning')
         await BarcodeScanner.stopScan().catch(() => {})
-        document.body.classList.remove('scanner-active')
       }
     } catch {
       /* ignore */
@@ -201,8 +201,9 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
       }
     })
 
-    // The camera preview renders behind the WebView, so the page must be
-    // transparent for it to be visible.
+    // The camera preview renders behind the WebView, so every layer from the
+    // document root down must be transparent for it to be visible.
+    document.documentElement.classList.add('scanner-active')
     document.body.classList.add('scanner-active')
 
     await BarcodeScanner.startScan({
@@ -225,6 +226,7 @@ export function useScanner(onHit: (hit: ScanHit) => void) {
       await BarcodeScanner.stopScan().catch(() => {})
       await listenerRef.current?.remove().catch(() => {})
       listenerRef.current = null
+      document.documentElement.classList.remove('scanner-active')
       document.body.classList.remove('scanner-active')
       return true
     }
