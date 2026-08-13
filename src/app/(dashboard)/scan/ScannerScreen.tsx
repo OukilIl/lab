@@ -334,15 +334,7 @@ export function ScannerScreen() {
             )}
 
             {!scanning && (
-              <div
-                className="scanner-overlay scanner-placeholder"
-                style={{
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: 'var(--bg-sunken)',
-                  pointerEvents: 'auto',
-                }}
-              >
+              <div className="scanner-overlay scanner-placeholder">
                 <div className="empty">
                   <div className="empty-icon">
                     {state.starting ? <span className="spinner" /> : <CameraOff size={20} />}

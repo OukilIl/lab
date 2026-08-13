@@ -1082,7 +1082,7 @@ body.scanner-active .scanner-card {
   box-shadow: none;
 }
 
-body.scanner-active .scanner-frame {
+body.scanner-active .scanner-card .scanner-frame {
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -1097,7 +1097,7 @@ body.scanner-active .scanner-frame {
 }
 
 /* The web <video> is unused on native and would paint black over the preview. */
-body.scanner-active .scanner-frame video {
+body.scanner-active .scanner-card .scanner-frame video {
   display: none;
 }
 
@@ -1106,6 +1106,83 @@ body.scanner-active .scanner-frame video {
 body.scanner-active .scanner-card .card-head,
 body.scanner-active .scanner-card .card-body {
   display: none;
+}
+
+/* ---- Scan sheet (Inventory → Scan barcode) ----
+   Takes over the screen like the Scan tab, because the native preview lives
+   behind the whole WebView and cannot be clipped into a floating card. */
+.scan-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg-base);
+  animation: fade-in var(--t-base) var(--ease-out);
+}
+
+.scan-sheet-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  overflow: visible;
+}
+
+.scan-sheet-bar {
+  position: absolute;
+  inset-inline: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.scan-sheet-top {
+  top: 0;
+  padding-top: calc(14px + env(safe-area-inset-top));
+}
+
+.scan-sheet-bottom {
+  bottom: 0;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+.scan-sheet-title {
+  font-weight: 620;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+/* Native: the sheet itself becomes transparent so the preview shows through
+   the viewfinder window; the scrim paints the surround back in. */
+body.scanner-active .scan-sheet {
+  background: transparent;
+}
+
+body.scanner-active .scan-sheet-frame {
+  background: transparent !important;
+}
+
+body.scanner-active .scan-sheet-frame video {
+  display: none;
+}
+
+body.scanner-active .scan-sheet .scanner-scrim {
+  box-shadow: 0 0 0 100vmax var(--bg-base);
+}
+
+body.scanner-active .scan-sheet .scanner-placeholder {
+  inset: var(--reticle-inset-y) var(--reticle-inset-x);
+  border-radius: var(--r-md);
+}
+
+/* In fullscreen the frame reaches the bottom of the screen, so a hint
+   anchored to it ends up behind the nav bar. Bottom-inset + a gap places it
+   just under the scan window, which is where it belongs visually anyway. */
+body.scanner-active .scanner-hint {
+  bottom: calc(var(--reticle-inset-y) - 38px);
 }
 
 /* Page furniture sits above the opaque surround and stays interactive; the
@@ -1126,9 +1203,17 @@ body.scanner-active .app-main .alert {
   pointer-events: none;
 }
 
-/* The "camera off" placeholder has an opaque background, so during a live
-   native scan it is pinned to the window instead of covering the screen. */
-body.scanner-active .scanner-placeholder {
+/* The "camera off" placeholder: an opaque panel with the message centred. */
+.scanner-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--bg-sunken);
+  pointer-events: auto;
+}
+
+/* During a live native scan it is pinned to the window rather than covering
+   the screen, so it never hides the preview. */
+body.scanner-active .scanner-card .scanner-placeholder {
   inset: var(--reticle-inset-y) var(--reticle-inset-x);
   border-radius: var(--r-md);
 }
@@ -1153,7 +1238,7 @@ body.scanner-active .scanner-placeholder {
 }
 
 /* Native: opaque, so the camera appears only inside the window. */
-body.scanner-active .scanner-scrim {
+body.scanner-active .scanner-card .scanner-scrim {
   box-shadow: 0 0 0 100vmax var(--bg-base);
 }
 

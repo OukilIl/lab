@@ -1,8 +1,14 @@
 'use client'
 
 /**
- * Full-screen scanner overlay used to fill a single field — currently the
- * GTIN on the new-product form. Closes as soon as a code is confirmed.
+ * Full-screen scanner used to fill a single field — currently the GTIN on the
+ * new-product form. Closes as soon as a code is confirmed.
+ *
+ * Deliberately not a card floating inside a dialog: on native the ML Kit
+ * preview renders *behind the whole WebView*, so it cannot be clipped to a
+ * small box sitting on top of it. Instead this takes over the screen exactly
+ * like the Scan tab — an opaque surround with a transparent window — which is
+ * both what works and what the user already recognises.
  */
 
 import { useCallback, useEffect } from 'react'
@@ -53,73 +59,63 @@ export function ScanModal({
   const scanning = state.active && !state.error
 
   return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label={t('scanBarcode')}>
-      <div className="modal" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="card-head">
-          <h2>{t('scanBarcode')}</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t('close')}>
+    <div className="scan-sheet" role="dialog" aria-modal="true" aria-label={t('scanBarcode')}>
+      <div className="scanner-frame scan-sheet-frame">
+        <video ref={videoRef} autoPlay playsInline muted />
+
+        {scanning && (
+          <div className="scanner-overlay">
+            <div className="scanner-scrim" />
+            <div className="reticle">
+              <span className="reticle-corner tl" />
+              <span className="reticle-corner tr" />
+              <span className="reticle-corner bl" />
+              <span className="reticle-corner br" />
+              <div className="scan-sweep" />
+            </div>
+            <div className="scanner-hint">{t('searching')}</div>
+          </div>
+        )}
+
+        {!scanning && (
+          <div className="scanner-overlay scanner-placeholder">
+            <div className="empty">
+              <div className="empty-icon">
+                {state.starting ? <span className="spinner" /> : <CameraOff size={20} />}
+              </div>
+              <div className="empty-title">
+                {state.starting ? t('startingCamera') : t('cameraOff')}
+              </div>
+              {state.error && <p className="empty-text">{state.error}</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Controls float above the viewfinder. */}
+      <div className="scan-sheet-bar scan-sheet-top">
+        <span className="scan-sheet-title">{t('scanBarcode')}</span>
+        <div className="row" style={{ gap: 8 }}>
+          {state.torchAvailable && scanning && (
+            <button
+              className="scanner-chip"
+              data-on={state.torchOn}
+              onClick={() => void toggleTorch()}
+              aria-label="Toggle flashlight"
+            >
+              <Flashlight size={18} />
+            </button>
+          )}
+          <button className="scanner-chip" onClick={onClose} aria-label={t('close')}>
             <X size={18} />
           </button>
         </div>
+      </div>
 
-        <div className="scanner-frame" style={{ borderRadius: 0 }}>
-          <video ref={videoRef} autoPlay playsInline muted />
-
-          {scanning && (
-            <div className="scanner-overlay">
-              <div className="scanner-scrim" />
-              <div className="reticle">
-                <span className="reticle-corner tl" />
-                <span className="reticle-corner tr" />
-                <span className="reticle-corner bl" />
-                <span className="reticle-corner br" />
-                <div className="scan-sweep" />
-              </div>
-              <div className="scanner-hint">{t('searching')}</div>
-            </div>
-          )}
-
-          {state.torchAvailable && scanning && (
-            <div className="scanner-controls">
-              <button
-                className="scanner-chip"
-                data-on={state.torchOn}
-                onClick={() => void toggleTorch()}
-                aria-label="Toggle flashlight"
-              >
-                <Flashlight size={18} />
-              </button>
-            </div>
-          )}
-
-          {!scanning && (
-            <div
-              className="scanner-overlay scanner-placeholder"
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                background: 'var(--bg-sunken)',
-                pointerEvents: 'auto',
-              }}
-            >
-              <div className="empty">
-                <div className="empty-icon">
-                  {state.starting ? <span className="spinner" /> : <CameraOff size={20} />}
-                </div>
-                <div className="empty-title">
-                  {state.starting ? t('startingCamera') : t('cameraOff')}
-                </div>
-                {state.error && <p className="empty-text">{state.error}</p>}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: 14 }}>
-          <button className="btn btn-secondary btn-block" onClick={onClose}>
-            {t('cancel')}
-          </button>
-        </div>
+      <div className="scan-sheet-bar scan-sheet-bottom">
+        <button className="btn btn-secondary btn-block" onClick={onClose}>
+          {t('cancel')}
+        </button>
       </div>
     </div>
   )

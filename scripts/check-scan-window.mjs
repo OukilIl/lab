@@ -58,7 +58,9 @@ const checks = [
   ['outside — left of window', win.left - 14, 422, false],
   ['outside — right of window', win.right + 14, 422, false],
   ['outside — above window', 195, win.top - 20, false],
-  ['outside — below window', 195, win.bottom + 20, false],
+  // Offset horizontally: the "Searching…" hint sits centred just below the
+  // window, and its white text is not a camera leak.
+  ['outside — below window', 60, win.bottom + 20, false],
   ['outside — top-left corner', 12, 12, false],
   ['outside — bottom-right corner', VIEW_W - 12, VIEW_H - 12, false],
 ]
