@@ -94,7 +94,7 @@ export function ScanModal({
 
           {!scanning && (
             <div
-              className="scanner-overlay"
+              className="scanner-overlay scanner-placeholder"
               style={{
                 display: 'grid',
                 placeItems: 'center',

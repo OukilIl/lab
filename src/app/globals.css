@@ -94,6 +94,11 @@
   --header-h: 58px;
   --nav-h: 62px;
 
+  /* Scan window position; the scrim and reticle share these so they can
+     never drift apart. */
+  --reticle-inset-y: 22%;
+  --reticle-inset-x: 14%;
+
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, 'SF Mono', Menlo, monospace;
 
@@ -390,6 +395,7 @@ button { background: none; border: none; cursor: pointer; }
 /* A flex child of the fixed shell, not `position: fixed` itself — that is
    what stops it drifting during iOS overscroll. */
 .app-nav {
+  position: relative;
   flex: 0 0 auto;
   z-index: 45;
   display: flex;
@@ -400,6 +406,20 @@ button { background: none; border: none; cursor: pointer; }
   padding: 6px 8px env(safe-area-inset-bottom);
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
+}
+
+/* The home-indicator strip below the nav. Painting it from the nav (rather
+   than letting whatever is behind show through) keeps it one constant colour
+   instead of picking up each page's background. */
+.app-nav::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100vmax;
+  background: var(--bg-surface);
+  pointer-events: none;
 }
 
 .nav-item {
@@ -1070,6 +1090,10 @@ body.scanner-active .scanner-frame {
   max-height: none;
   aspect-ratio: auto;
   background: transparent !important;
+  /* The scrim's box-shadow paints outside its own box; the base rule's
+     `overflow: hidden` would clip it away and let the camera fill the
+     screen. */
+  overflow: visible;
 }
 
 /* The web <video> is unused on native and would paint black over the preview. */
@@ -1084,8 +1108,8 @@ body.scanner-active .scanner-card .card-body {
   display: none;
 }
 
-/* Page furniture (title, tabs, alerts) floats above the dimmed backdrop and
-   stays interactive — the overlay itself ignores pointer events. */
+/* Page furniture sits above the opaque surround and stays interactive; the
+   overlay itself ignores pointer events. */
 body.scanner-active .app-main .page-head,
 body.scanner-active .app-main .segmented,
 body.scanner-active .app-main .alert {
@@ -1093,17 +1117,8 @@ body.scanner-active .app-main .alert {
   z-index: 20;
 }
 
-body.scanner-active .app-main .page-head h1,
-body.scanner-active .app-main .page-head p {
-  color: #fff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
-}
-
-body.scanner-active .app-nav {
-  background: color-mix(in srgb, var(--bg-surface) 72%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
+/* The surround is the normal app background now, so the nav needs no
+   special treatment while scanning. */
 
 .scanner-overlay {
   position: absolute;
@@ -1111,48 +1126,42 @@ body.scanner-active .app-nav {
   pointer-events: none;
 }
 
-/* Dim everything outside the reticle so the eye lands on the target. */
-.scanner-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.42);
-  transition: background var(--t-base) var(--ease-out);
+/* The "camera off" placeholder has an opaque background, so during a live
+   native scan it is pinned to the window instead of covering the screen. */
+body.scanner-active .scanner-placeholder {
+  inset: var(--reticle-inset-y) var(--reticle-inset-x);
+  border-radius: var(--r-md);
 }
 
-/* Fullscreen native scan: a deeper dim, since page content sits on top. */
+/**
+ * The scan window.
+ *
+ * While a native scan runs, the whole page is transparent so the ML Kit
+ * preview (which renders behind the WebView) can be seen. That would show the
+ * camera edge-to-edge, so this element paints the app background back over
+ * everything *except* the window: a transparent box whose box-shadow spread
+ * fills the rest of the screen with an opaque colour. The hole therefore lines
+ * up with the corner brackets exactly, because both use the same inset.
+ */
+.scanner-scrim {
+  position: absolute;
+  inset: var(--reticle-inset-y) var(--reticle-inset-x);
+  border-radius: var(--r-md);
+  background: transparent;
+  /* Dimming only — used by the web engine, where the video already clips. */
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.42);
+}
+
+/* Native: opaque, so the camera appears only inside the window. */
 body.scanner-active .scanner-scrim {
-  background: rgba(0, 0, 0, 0.62);
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 22% 14%;
+  box-shadow: 0 0 0 100vmax var(--bg-base);
 }
 
 .reticle {
   position: absolute;
-  inset: 22% 14%;
+  inset: var(--reticle-inset-y) var(--reticle-inset-x);
   border-radius: var(--r-md);
 }
-
-.reticle-corner {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border: 3px solid rgba(255, 255, 255, 0.94);
-  transition: border-color var(--t-base) var(--ease-out);
-}
-
-.reticle-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: var(--r-sm) 0 0 0; }
-.reticle-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 var(--r-sm) 0 0; }
-.reticle-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 var(--r-sm); }
-.reticle-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 var(--r-sm) 0; }
-
-.reticle[data-state='found'] .reticle-corner { border-color: var(--ok); }
 
 /* Sweeping line communicates that decoding is continuous, not on-demand. */
 .scan-sweep {

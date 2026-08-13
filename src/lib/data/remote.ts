@@ -7,8 +7,6 @@
  * is held here and sent as a bearer token instead.
  */
 
-import { Preferences } from '@capacitor/preferences'
-
 import { err, ok } from '@/core/types'
 import type {
   DashboardData,
@@ -20,6 +18,7 @@ import type {
   Result,
   UsageLogEntry,
 } from '@/core/types'
+import { storageGet, storageRemove, storageSet } from './storage'
 import type { DataBackend, SessionUser } from './types'
 
 const TOKEN_KEY = 'labstock.token'
@@ -62,12 +61,10 @@ export class RemoteBackend implements DataBackend {
   async init(): Promise<Result<void>> {
     if (!this.baseUrl) return err('No server address configured', 'NO_SERVER')
 
-    try {
-      const stored = await Preferences.get({ key: TOKEN_KEY })
-      if (stored.value) this.token = stored.value
-    } catch {
-      // Preferences is unavailable in some browser contexts; sign-in still works.
-    }
+    // Timeout-guarded: the Preferences web shim can leave this pending, which
+    // would hang the app on its loading screen.
+    const stored = await storageGet(TOKEN_KEY)
+    if (stored) this.token = stored
 
     const health = await this.request<{ status: string }>('GET', '/api/health', undefined, {
       skipAuth: true,
@@ -91,11 +88,7 @@ export class RemoteBackend implements DataBackend {
   private async clearToken() {
     this.token = null
     this.user = null
-    try {
-      await Preferences.remove({ key: TOKEN_KEY })
-    } catch {
-      /* ignore */
-    }
+    await storageRemove(TOKEN_KEY)
   }
 
   private async request<T>(
@@ -170,11 +163,7 @@ export class RemoteBackend implements DataBackend {
 
     this.token = res.data.token
     this.user = res.data.user
-    try {
-      await Preferences.set({ key: TOKEN_KEY, value: res.data.token })
-    } catch {
-      /* session still valid for this run */
-    }
+    await storageSet(TOKEN_KEY, res.data.token)
     return ok(res.data.user)
   }
 

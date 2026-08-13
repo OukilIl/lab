@@ -5,7 +5,7 @@
  * localStorage fallback so the same code works in a desktop browser.
  */
 
-import { Preferences } from '@capacitor/preferences'
+import { storageGet, storageSet } from './storage'
 import { DEFAULT_SETTINGS, SETTINGS_KEY, type AppSettings } from './types'
 
 function isBackendMode(value: unknown): value is AppSettings['mode'] {
@@ -23,38 +23,15 @@ function coerce(raw: unknown): AppSettings {
 }
 
 export async function loadSettings(): Promise<AppSettings> {
+  const value = await storageGet(SETTINGS_KEY)
+  if (!value) return { ...DEFAULT_SETTINGS }
   try {
-    const { value } = await Preferences.get({ key: SETTINGS_KEY })
-    if (value) return coerce(JSON.parse(value))
+    return coerce(JSON.parse(value))
   } catch {
-    // Fall through to localStorage.
+    return { ...DEFAULT_SETTINGS }
   }
-
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const value = localStorage.getItem(SETTINGS_KEY)
-      if (value) return coerce(JSON.parse(value))
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return { ...DEFAULT_SETTINGS }
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const serialized = JSON.stringify(settings)
-  try {
-    await Preferences.set({ key: SETTINGS_KEY, value: serialized })
-    return
-  } catch {
-    // Fall through to localStorage.
-  }
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(SETTINGS_KEY, serialized)
-    }
-  } catch {
-    /* ignore */
-  }
+  await storageSet(SETTINGS_KEY, JSON.stringify(settings))
 }
