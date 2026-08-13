@@ -5,6 +5,8 @@
 import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { useI18n } from '@/lib/i18n/I18nProvider'
+
 export type Tone = 'ok' | 'warn' | 'danger' | 'info'
 
 const TONE_ICON: Record<Tone, LucideIcon> = {
@@ -86,17 +88,16 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
 
 /** Expiry pill whose colour tracks urgency. */
 export function ExpiryBadge({ days }: { days: number }) {
+  const { t } = useI18n()
   const tone = days < 0 ? 'danger' : days <= 7 ? 'danger' : days <= 30 ? 'warn' : 'neutral'
-  const label =
-    days < 0
-      ? days === -1
-        ? 'Expired yesterday'
-        : `Expired ${Math.abs(days)}d ago`
-      : days === 0
-        ? 'Expires today'
-        : days === 1
-          ? 'Tomorrow'
-          : `${days}d left`
 
-  return <span className={`badge badge-${tone} numeric`}>{label}</span>
+  // Compact, numeric forms so the badge reads the same width in every
+  // language; the sign carries the meaning.
+  const label = days < 0 ? `-${Math.abs(days)}d` : days === 0 ? t('expires') : `${days}d`
+
+  return (
+    <span className={`badge badge-${tone} numeric`} title={`${days}d`}>
+      {label} {days >= 0 ? t('left') : ''}
+    </span>
+  )
 }

@@ -11,11 +11,13 @@ import {
 } from 'lucide-react'
 
 import { useBackend, useBackendData } from '@/lib/data/BackendProvider'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Alert, EmptyState, ExpiryBadge, SkeletonCard } from '@/components/ui'
 import type { DashboardData } from '@/core/types'
 
 export default function DashboardPage() {
   const { revision } = useBackend()
+  const { t } = useI18n()
   const { data, error, loading } = useBackendData<DashboardData>(
     (backend) => backend.getDashboard(),
     [revision]
@@ -46,30 +48,30 @@ export default function DashboardPage() {
   return (
     <div className="stack stack-4">
       <div className="page-head">
-        <h1>Overview</h1>
-        <p>Stock levels and anything that needs attention today.</p>
+        <h1>{t('overview')}</h1>
+        <p>{t('overviewSubtitle')}</p>
       </div>
 
       <div className="stat-grid">
         <div className="stat">
           <div className="stat-label">
-            <Layers size={13} /> Total stock
+            <Layers size={13} /> {t('totalStock')}
           </div>
           <div className="stat-value numeric">
             {totalUnits}
-            <span className="stat-unit">units</span>
+            <span className="stat-unit">{t('units')}</span>
           </div>
         </div>
 
         <div className="stat" data-tone={expiredCount > 0 ? 'danger' : undefined}>
           <div className="stat-label">
-            <AlertTriangle size={13} /> Expiring
+            <AlertTriangle size={13} /> {t('expiring')}
           </div>
           <div className="stat-value numeric">
             {expiringSoon.length}
             {expiredCount > 0 && (
               <span className="stat-unit" style={{ color: 'var(--danger-text)' }}>
-                {expiredCount} expired
+                {expiredCount} {t('expiredCount')}
               </span>
             )}
           </div>
@@ -77,30 +79,30 @@ export default function DashboardPage() {
 
         <div className="stat" data-tone={lowStock.length > 0 ? 'warn' : undefined}>
           <div className="stat-label">
-            <TrendingDown size={13} /> Low stock
+            <TrendingDown size={13} /> {t('lowStock')}
           </div>
           <div className="stat-value numeric">
             {lowStock.length}
-            <span className="stat-unit">of {productCount}</span>
+            <span className="stat-unit">{t('of')} {productCount}</span>
           </div>
         </div>
       </div>
 
       {allClear && productCount > 0 && (
-        <Alert tone="ok">Everything is in good shape — no expiring batches and no low stock.</Alert>
+        <Alert tone="ok">{t('allGood')}</Alert>
       )}
 
       {productCount === 0 && (
         <div className="card card-pad">
-          <EmptyState icon={PackageSearch} title="No products yet">
-            Add your first product, then scan its barcode to start tracking stock.
+          <EmptyState icon={PackageSearch} title={t('noProducts')}>
+            {t('noProductsBody')}
           </EmptyState>
           <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
             <Link href="/products" className="btn btn-primary">
-              Add a product
+              {t('addProduct')}
             </Link>
             <Link href="/scan" className="btn btn-secondary">
-              <ScanLine size={17} /> Scan
+              <ScanLine size={17} /> {t('navScan')}
             </Link>
           </div>
         </div>
@@ -111,7 +113,7 @@ export default function DashboardPage() {
           <section className="card">
             <div className="card-head">
               <h2>
-                <AlertTriangle size={17} style={{ color: 'var(--warn)' }} /> Expiring soon
+                <AlertTriangle size={17} style={{ color: 'var(--warn)' }} /> {t('expiringSoon')}
               </h2>
               {expiringSoon.length > 0 && (
                 <span className="badge badge-warn numeric">{expiringSoon.length}</span>
@@ -119,8 +121,8 @@ export default function DashboardPage() {
             </div>
             <div className="card-body">
               {expiringSoon.length === 0 ? (
-                <EmptyState icon={CheckCircle2} title="Nothing expiring">
-                  No batch is within its expiry warning window.
+                <EmptyState icon={CheckCircle2} title={t('nothingExpiring')}>
+                  {t('nothingExpiringBody')}
                 </EmptyState>
               ) : (
                 <div className="list">
@@ -129,8 +131,8 @@ export default function DashboardPage() {
                       <div className="grow">
                         <div className="list-row-title truncate">{w.product.name}</div>
                         <div className="list-row-meta">
-                          Lot <span className="mono selectable">{w.batch.batchNumber}</span> ·{' '}
-                          <span className="numeric">{w.batch.currentQuantity}</span> left
+                          {t('lot')} <span className="mono selectable">{w.batch.batchNumber}</span> ·{' '}
+                          <span className="numeric">{w.batch.currentQuantity}</span> {t('left')}
                         </div>
                       </div>
                       <ExpiryBadge days={w.daysToExpiry} />
@@ -138,7 +140,7 @@ export default function DashboardPage() {
                   ))}
                   {expiringSoon.length > 8 && (
                     <div className="list-row text-xs text-muted">
-                      +{expiringSoon.length - 8} more
+                      +{expiringSoon.length - 8} {t('more')}
                     </div>
                   )}
                 </div>
@@ -149,7 +151,7 @@ export default function DashboardPage() {
           <section className="card">
             <div className="card-head">
               <h2>
-                <TrendingDown size={17} style={{ color: 'var(--danger)' }} /> Running low
+                <TrendingDown size={17} style={{ color: 'var(--danger)' }} /> {t('runningLow')}
               </h2>
               {lowStock.length > 0 && (
                 <span className="badge badge-danger numeric">{lowStock.length}</span>
@@ -157,8 +159,8 @@ export default function DashboardPage() {
             </div>
             <div className="card-body">
               {lowStock.length === 0 ? (
-                <EmptyState icon={CheckCircle2} title="Stock levels are fine">
-                  Every product is above its low-stock threshold.
+                <EmptyState icon={CheckCircle2} title={t('stockFine')}>
+                  {t('stockFineBody')}
                 </EmptyState>
               ) : (
                 <div className="stack stack-4">

@@ -1,11 +1,14 @@
 'use client'
 
 /**
- * Live scanning screen.
+ * Scanning screen.
  *
- * The camera decodes continuously; a confirmed read fills the form below and
- * the user commits it. A manual capture button remains for labels the live
- * decoder cannot resolve (damaged, curved, or very low contrast).
+ * Two tabs rather than a long form: the camera fills the view and decodes
+ * continuously, and manual entry is a separate panel. Only one is on screen
+ * at a time, so neither requires scrolling on a phone.
+ *
+ * A successful scan switches to the details tab with the fields prefilled,
+ * which is also where a hand-typed entry is completed.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -15,6 +18,7 @@ import {
   CameraOff,
   CircleDot,
   Flashlight,
+  Keyboard,
   PackagePlus,
   ScanLine,
   Sparkles,
@@ -23,8 +27,11 @@ import {
 import { useBackend } from '@/lib/data/BackendProvider'
 import { useScanner, type ScanHit } from '@/lib/scanner/useScanner'
 import { normalizeServerUrl } from '@/lib/data/remote'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Alert } from '@/components/ui'
 import type { ParsedBarcode } from '@/core/barcode'
+
+type Tab = 'camera' | 'manual'
 
 interface Feedback {
   tone: 'ok' | 'danger' | 'warn' | 'info'
@@ -35,6 +42,9 @@ interface Feedback {
 export function ScannerScreen() {
   const router = useRouter()
   const { backend, settings, invalidate } = useBackend()
+  const { t } = useI18n()
+
+  const [tab, setTab] = useState<Tab>('camera')
 
   const [gtin, setGtin] = useState('')
   const [batchNumber, setBatchNumber] = useState('')
@@ -66,47 +76,46 @@ export function ScannerScreen() {
 
       void pulse()
 
-      // Surface parser warnings rather than silently accepting a suspect read:
-      // a wrong GTIN books stock against the wrong product.
       if (parsed.warnings.length > 0) {
-        setFeedback({ tone: 'warn', text: `${parsed.warnings.join('. ')}. Check the fields below.` })
+        setFeedback({ tone: 'warn', text: parsed.warnings.join('. ') })
       } else {
-        const label = parsed.format === 'HIBC' ? 'HIBC' : parsed.format === 'GS1' ? 'GS1' : 'barcode'
-        setFeedback({ tone: 'ok', text: `${label} decoded. Confirm the details and save.` })
+        const label = parsed.format === 'HIBC' ? 'HIBC' : parsed.format === 'GS1' ? 'GS1' : ''
+        setFeedback({ tone: 'ok', text: `${label} ${t('scannedOk')}`.trim() })
       }
+
+      // Move to the details tab so the user confirms and saves. This also
+      // releases the camera, which matters for battery and the privacy light.
+      setTab('manual')
+      void stop()
     },
-    // `pulse` is stable from the hook; referenced below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [t]
   )
 
   const { state, videoRef, start, stop, toggleTorch, pulse } = useScanner(handleHit)
 
-  // Start the camera on mount; the hook stops it on unmount and on background.
+  // Run the camera only while its tab is showing.
   useEffect(() => {
-    void start()
+    if (tab === 'camera') void start()
+    else void stop()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
+
+  useEffect(() => {
     return () => {
       if (flashTimer.current) clearTimeout(flashTimer.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** Manual capture: send one frame to the server's multi-pass decoder. */
   async function handleManualCapture() {
     const video = videoRef.current
     const canvas = canvasRef.current
 
     if (settings.mode !== 'remote') {
-      setFeedback({
-        tone: 'info',
-        text: 'Enhanced capture needs a lab server. Hold steady and let the live scanner try again.',
-      })
+      setFeedback({ tone: 'info', text: t('enhanceNeedsServer') })
       return
     }
-    if (!video || !canvas || !video.videoWidth) {
-      setFeedback({ tone: 'danger', text: 'The camera is not ready yet.' })
-      return
-    }
+    if (!video || !canvas || !video.videoWidth) return
 
     setManualBusy(true)
     setFeedback(null)
@@ -120,27 +129,21 @@ export function ScannerScreen() {
     )
     if (!blob) {
       setManualBusy(false)
-      setFeedback({ tone: 'danger', text: 'Could not capture a frame.' })
       return
     }
 
     try {
       const form = new FormData()
       form.append('image', blob, 'capture.jpg')
-
       const res = await fetch(`${normalizeServerUrl(settings.serverUrl)}/api/decode`, {
         method: 'POST',
         body: form,
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        setFeedback({ tone: 'danger', text: data?.error ?? 'No barcode found in that frame.' })
-      } else {
-        handleHit({ parsed: data as ParsedBarcode, symbology: 'server', engine: 'web' })
-      }
+      if (!res.ok) setFeedback({ tone: 'danger', text: data?.error ?? t('somethingWrong') })
+      else handleHit({ parsed: data as ParsedBarcode, symbology: 'server', engine: 'web' })
     } catch {
-      setFeedback({ tone: 'danger', text: 'Could not reach the server for enhanced decoding.' })
+      setFeedback({ tone: 'danger', text: t('somethingWrong') })
     } finally {
       setManualBusy(false)
     }
@@ -172,7 +175,10 @@ export function ScannerScreen() {
       return
     }
 
-    setFeedback({ tone: 'ok', text: `Saved. ${result.data.currentQuantity} units now in this batch.` })
+    setFeedback({
+      tone: 'ok',
+      text: `${t('savedUnits')} ${result.data.currentQuantity} ${t('nowInBatch')}`,
+    })
     setBatchNumber('')
     setExpirationDate('')
     setQuantity('1')
@@ -187,14 +193,52 @@ export function ScannerScreen() {
     <div className="stack stack-4">
       <div className="page-head">
         <h1>
-          <ScanLine size={24} style={{ color: 'var(--accent)' }} /> Scan
+          <ScanLine size={24} style={{ color: 'var(--accent)' }} /> {t('scan')}
         </h1>
-        <p>Point the camera at a GS1 DataMatrix or HIBC label. It decodes automatically.</p>
       </div>
 
-      <div className="two-col">
-        {/* ---- Camera ---- */}
-        <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="segmented" role="tablist">
+        <button
+          role="tab"
+          aria-selected={tab === 'camera'}
+          data-active={tab === 'camera'}
+          onClick={() => setTab('camera')}
+        >
+          <Camera size={16} /> {t('tabCamera')}
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'manual'}
+          data-active={tab === 'manual'}
+          onClick={() => setTab('manual')}
+        >
+          <Keyboard size={16} /> {t('tabManual')}
+        </button>
+      </div>
+
+      {feedback && (
+        <Alert
+          tone={feedback.tone}
+          action={
+            feedback.missingGtin ? (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() =>
+                  router.push(`/products?gtin=${encodeURIComponent(feedback.missingGtin!)}`)
+                }
+              >
+                <PackagePlus size={15} /> {t('createThisProduct')}
+              </button>
+            ) : undefined
+          }
+        >
+          {feedback.text}
+        </Alert>
+      )}
+
+      {/* ---- Camera ---- */}
+      {tab === 'camera' && (
+        <div className="card scanner-card" style={{ overflow: 'hidden' }}>
           <div className="scanner-frame">
             <video ref={videoRef} autoPlay playsInline muted />
 
@@ -209,7 +253,7 @@ export function ScannerScreen() {
                   {!flash && <div className="scan-sweep" />}
                 </div>
                 <div className="scanner-hint">
-                  {flash ? 'Code captured' : 'Searching for a barcode…'}
+                  {flash ? t('codeCaptured') : t('searching')}
                 </div>
               </div>
             )}
@@ -244,12 +288,12 @@ export function ScannerScreen() {
                     {state.starting ? <span className="spinner" /> : <CameraOff size={20} />}
                   </div>
                   <div className="empty-title">
-                    {state.starting ? 'Starting camera' : 'Camera is off'}
+                    {state.starting ? t('startingCamera') : t('cameraOff')}
                   </div>
                   {state.error && <p className="empty-text">{state.error}</p>}
                   {!state.starting && (
                     <button className="btn btn-primary btn-sm" onClick={() => void start()}>
-                      <Camera size={15} /> Start camera
+                      <Camera size={15} /> {t('startCamera')}
                     </button>
                   )}
                 </div>
@@ -261,79 +305,46 @@ export function ScannerScreen() {
             <div className="row-between">
               <span className="text-xs text-muted">
                 {state.engine === 'mlkit'
-                  ? 'On-device scanning (ML Kit)'
+                  ? t('onDeviceScanning')
                   : state.engine === 'web'
-                    ? 'Browser scanning'
-                    : 'Camera idle'}
+                    ? t('browserScanning')
+                    : t('cameraIdle')}
               </span>
               {scanning && (
                 <span className="badge badge-ok">
-                  <CircleDot size={11} /> Live
+                  <CircleDot size={11} /> {t('live')}
                 </span>
               )}
             </div>
 
-            <div className="row" style={{ gap: 8 }}>
+            {settings.mode === 'remote' && (
               <button
-                className="btn btn-secondary grow"
-                onClick={() => (scanning ? void stop() : void start())}
+                className="btn btn-secondary btn-block"
+                onClick={handleManualCapture}
+                disabled={!scanning || manualBusy}
               >
-                {scanning ? <CameraOff size={16} /> : <Camera size={16} />}
-                {scanning ? 'Stop' : 'Start'}
+                {manualBusy ? <span className="spinner" /> : <Sparkles size={16} />}
+                {t('enhance')}
               </button>
-
-              {settings.mode === 'remote' && (
-                <button
-                  className="btn btn-secondary grow"
-                  onClick={handleManualCapture}
-                  disabled={!scanning || manualBusy}
-                  title="Send one frame to the server for a deeper multi-pass decode"
-                >
-                  {manualBusy ? <span className="spinner" /> : <Sparkles size={16} />}
-                  Enhance
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
+      )}
 
-        {/* ---- Details ---- */}
+      {/* ---- Manual entry / confirmation ---- */}
+      {tab === 'manual' && (
         <div className="card">
           <div className="card-head">
-            <h2>Batch details</h2>
-            {lastScan && (
-              <span className="badge badge-accent">{lastScan.format}</span>
-            )}
+            <h2>{t('batchDetails')}</h2>
+            {lastScan && <span className="badge badge-accent">{lastScan.format}</span>}
           </div>
 
           <div className="card-body">
-            {feedback && (
-              <div style={{ marginBottom: 14 }}>
-                <Alert
-                  tone={feedback.tone}
-                  action={
-                    feedback.missingGtin ? (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() =>
-                          router.push(`/products?gtin=${encodeURIComponent(feedback.missingGtin!)}`)
-                        }
-                      >
-                        <PackagePlus size={15} /> Create this product
-                      </button>
-                    ) : undefined
-                  }
-                >
-                  {feedback.text}
-                </Alert>
-              </div>
-            )}
-
             <form onSubmit={handleSave}>
               <div className="field">
-                <label htmlFor="gtin">GTIN</label>
+                <label htmlFor="gtin">{t('gtin')}</label>
                 <input
                   id="gtin"
                   name="gtin"
@@ -343,13 +354,13 @@ export function ScannerScreen() {
                   required
                   value={gtin}
                   onChange={(e) => setGtin(e.target.value)}
-                  placeholder="Scan or type"
+                  placeholder={t('gtinPlaceholder')}
                 />
               </div>
 
               <div className="field-row">
                 <div className="field">
-                  <label htmlFor="batch">Lot / batch</label>
+                  <label htmlFor="batch">{t('lotBatch')}</label>
                   <input
                     id="batch"
                     name="batchNumber"
@@ -362,7 +373,7 @@ export function ScannerScreen() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="expiry">Expires</label>
+                  <label htmlFor="expiry">{t('expires')}</label>
                   <input
                     id="expiry"
                     name="expirationDate"
@@ -375,7 +386,7 @@ export function ScannerScreen() {
               </div>
 
               <div className="field">
-                <label htmlFor="quantity">Quantity received</label>
+                <label htmlFor="quantity">{t('quantityReceived')}</label>
                 <input
                   id="quantity"
                   name="quantity"
@@ -389,24 +400,24 @@ export function ScannerScreen() {
               </div>
 
               <div className="field">
-                <label htmlFor="notes">Notes (optional)</label>
+                <label htmlFor="notes">{t('notesOptional')}</label>
                 <input
                   id="notes"
                   name="notes"
                   autoComplete="off"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. arrived frozen"
+                  placeholder={t('notesPlaceholder')}
                 />
               </div>
 
               <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={saving}>
                 {saving ? (
                   <>
-                    <span className="spinner" /> Saving
+                    <span className="spinner" /> {t('saving')}
                   </>
                 ) : (
-                  'Add to inventory'
+                  t('addToInventory')
                 )}
               </button>
             </form>
@@ -414,7 +425,7 @@ export function ScannerScreen() {
             {lastScan?.raw && (
               <details style={{ marginTop: 14 }}>
                 <summary className="text-xs text-muted" style={{ cursor: 'pointer' }}>
-                  Raw scan data
+                  {t('rawScanData')}
                 </summary>
                 <p
                   className="mono text-xs selectable"
@@ -427,14 +438,13 @@ export function ScannerScreen() {
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  {/* Make the invisible FNC1 separators visible for debugging. */}
                   {lastScan.raw.replace(/\x1d/g, '⟨GS⟩')}
                 </p>
               </details>
             )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

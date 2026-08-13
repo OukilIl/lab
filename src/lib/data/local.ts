@@ -24,6 +24,75 @@ import type {
 import { DB_NAME, SCHEMA_STATEMENTS, SCHEMA_VERSION } from './schema-sql'
 import type { DataBackend, SessionUser } from './types'
 
+/**
+ * Module-level connection shared by every LocalBackend instance.
+ *
+ * The native plugin registers connections globally, but each JS
+ * `SQLiteConnection` wrapper keeps its own registry. Creating a fresh backend
+ * (logout, settings change, retry) with a fresh wrapper made
+ * `createConnection` throw "Connection labstock already exists", because the
+ * native side still held the old one. One shared wrapper + one shared db
+ * connection removes the mismatch entirely.
+ */
+let sharedSqlite: SQLiteConnection | null = null
+let sharedDb: SQLiteDBConnection | null = null
+let sharedDbPromise: Promise<SQLiteDBConnection> | null = null
+
+async function openSharedDatabase(): Promise<SQLiteDBConnection> {
+  if (sharedDb) return sharedDb
+  // Serialise concurrent opens (several screens init on first paint).
+  if (!sharedDbPromise) {
+    sharedDbPromise = (async () => {
+      if (!sharedSqlite) sharedSqlite = new SQLiteConnection(CapacitorSQLite)
+      const sqlite = sharedSqlite
+
+      // The web build needs the sql.js worker mounted before any connection.
+      if (Capacitor.getPlatform() === 'web') {
+        if (!document.querySelector('jeep-sqlite')) {
+          document.body.appendChild(document.createElement('jeep-sqlite'))
+          await customElements.whenDefined('jeep-sqlite')
+        }
+        await sqlite.initWebStore()
+      }
+
+      // Reconcile the JS registry with the native plugin's: after a WebView
+      // reload the native connection can outlive every JS wrapper.
+      const consistency = await sqlite
+        .checkConnectionsConsistency()
+        .catch(() => ({ result: false }))
+      const existing = (await sqlite.isConnection(DB_NAME, false)).result
+
+      let db: SQLiteDBConnection
+      if (consistency.result && existing) {
+        db = await sqlite.retrieveConnection(DB_NAME, false)
+      } else {
+        try {
+          db = await sqlite.createConnection(DB_NAME, false, 'no-encryption', SCHEMA_VERSION, false)
+        } catch (e) {
+          // Belt and braces: if the native side still reports the connection,
+          // adopt it rather than failing the whole app.
+          if (e instanceof Error && e.message.includes('already exists')) {
+            db = await sqlite.retrieveConnection(DB_NAME, false)
+          } else {
+            throw e
+          }
+        }
+      }
+
+      const open = await db.isDBOpen().catch(() => ({ result: false }))
+      if (!open.result) await db.open()
+
+      sharedDb = db
+      return db
+    })().catch((e) => {
+      // Reset so a retry starts clean instead of reusing a rejected promise.
+      sharedDbPromise = null
+      throw e
+    })
+  }
+  return sharedDbPromise
+}
+
 function newId(): string {
   // `crypto.randomUUID` needs a secure context; Capacitor's WebView qualifies,
   // but fall back for plain http:// LAN access in a desktop browser.
@@ -45,7 +114,6 @@ function newId(): string {
 export class LocalBackend implements DataBackend {
   readonly mode = 'local' as const
 
-  private sqlite: SQLiteConnection | null = null
   private db: SQLiteDBConnection | null = null
   private initPromise: Promise<Result<void>> | null = null
 
@@ -57,25 +125,7 @@ export class LocalBackend implements DataBackend {
 
   private async doInit(): Promise<Result<void>> {
     try {
-      this.sqlite = new SQLiteConnection(CapacitorSQLite)
-
-      // The web build needs the sql.js worker mounted before any connection.
-      if (Capacitor.getPlatform() === 'web') {
-        const jeepEl = document.querySelector('jeep-sqlite')
-        if (!jeepEl) {
-          const el = document.createElement('jeep-sqlite')
-          document.body.appendChild(el)
-          await customElements.whenDefined('jeep-sqlite')
-        }
-        await this.sqlite.initWebStore()
-      }
-
-      const existing = await this.sqlite.isConnection(DB_NAME, false)
-      this.db = existing.result
-        ? await this.sqlite.retrieveConnection(DB_NAME, false)
-        : await this.sqlite.createConnection(DB_NAME, false, 'no-encryption', SCHEMA_VERSION, false)
-
-      await this.db.open()
+      this.db = await openSharedDatabase()
 
       for (const statement of SCHEMA_STATEMENTS) {
         await this.db.execute(statement)
@@ -113,9 +163,9 @@ export class LocalBackend implements DataBackend {
 
   /** Persist the web store; a no-op on native platforms. */
   private async persist(): Promise<void> {
-    if (Capacitor.getPlatform() === 'web' && this.sqlite) {
+    if (Capacitor.getPlatform() === 'web' && sharedSqlite) {
       try {
-        await this.sqlite.saveToStore(DB_NAME)
+        await sharedSqlite.saveToStore(DB_NAME)
       } catch {
         // Non-fatal: data is still in memory for this session.
       }
@@ -395,6 +445,19 @@ export class LocalBackend implements DataBackend {
       return ok(rows)
     } catch (e) {
       return err(e instanceof Error ? e.message : 'Could not read usage log')
+    }
+  }
+
+  async clearAllData(): Promise<Result<void>> {
+    try {
+      // Children first: usage logs reference batches, batches reference products.
+      await this.run('DELETE FROM usage_logs')
+      await this.run('DELETE FROM inventory_batches')
+      await this.run('DELETE FROM products')
+      await this.persist()
+      return ok(undefined)
+    } catch (e) {
+      return err(e instanceof Error ? e.message : 'Could not clear local data')
     }
   }
 }

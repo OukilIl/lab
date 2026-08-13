@@ -122,6 +122,9 @@ try {
       process.env.LABSHOT_THEME
         ? `localStorage.setItem('labstock.theme', ${JSON.stringify(process.env.LABSHOT_THEME)});`
         : '',
+      process.env.LABSHOT_LANG
+        ? `localStorage.setItem('labstock.language', ${JSON.stringify(process.env.LABSHOT_LANG)});`
+        : '',
     ].join('\n')
 
     await send('Page.addScriptToEvaluateOnNewDocument', { source: script }, sessionId)

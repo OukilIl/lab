@@ -224,4 +224,11 @@ export class RemoteBackend implements DataBackend {
   async recentUsage(limit = 50): Promise<Result<UsageLogEntry[]>> {
     return this.request<UsageLogEntry[]>('GET', `/api/usage?limit=${limit}`)
   }
+
+  async clearAllData(): Promise<Result<void>> {
+    // Deliberately unsupported: a single phone must not be able to wipe the
+    // inventory that the whole team depends on. Server data is managed on the
+    // server.
+    return err('Shared server data cannot be deleted from the app', 'NOT_SUPPORTED')
+  }
 }

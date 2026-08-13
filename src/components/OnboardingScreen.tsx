@@ -1,17 +1,20 @@
 'use client'
 
-/** First-run screen: choose on-device storage or a shared LAN server. */
+/** First-run screen: pick a language, then on-device or LAN-server storage. */
 
 import { useState } from 'react'
 import { ArrowRight, FlaskConical, Server, Smartphone } from 'lucide-react'
 
 import { useBackend } from '@/lib/data/BackendProvider'
 import { normalizeServerUrl } from '@/lib/data/remote'
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import { LANGUAGES } from '@/lib/i18n/translations'
 import type { BackendMode } from '@/lib/data/types'
 import { Alert } from './ui'
 
 export function OnboardingScreen() {
   const { configure } = useBackend()
+  const { t, language, setLanguage } = useI18n()
 
   const [mode, setMode] = useState<BackendMode>('local')
   const [serverUrl, setServerUrl] = useState('')
@@ -21,18 +24,15 @@ export function OnboardingScreen() {
   async function handleContinue() {
     setError(null)
 
-    if (mode === 'remote') {
-      const normalized = normalizeServerUrl(serverUrl)
-      if (!normalized) {
-        setError('Enter a valid server address, for example 192.168.1.89:3000')
-        return
-      }
+    if (mode === 'remote' && !normalizeServerUrl(serverUrl)) {
+      setError(t('serverAddressInvalid'))
+      return
     }
 
     setBusy(true)
     const result = await configure({ mode, serverUrl, configured: true })
     setBusy(false)
-    if (!result.ok) setError(result.error ?? 'Could not connect')
+    if (!result.ok) setError(result.error ?? t('cannotConnect'))
   }
 
   return (
@@ -42,11 +42,32 @@ export function OnboardingScreen() {
           <div className="glyph">
             <FlaskConical size={26} />
           </div>
-          <h1>Welcome to LabStock</h1>
-          <p>Choose where your inventory data should live. You can change this later in Settings.</p>
+          <h1>{t('welcome')}</h1>
+          <p>{t('welcomeSubtitle')}</p>
         </div>
 
-        <div className="stack stack-3" style={{ marginBottom: 20 }}>
+        {/* Language first: everything below should already read in the user's
+            own language before they make a decision. */}
+        <div className="field">
+          <label>{t('chooseLanguage')}</label>
+          <div className="lang-grid">
+            {LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                className="lang-option"
+                data-selected={language === lang.code}
+                onClick={() => setLanguage(lang.code)}
+                aria-pressed={language === lang.code}
+              >
+                <span className="native">{lang.native}</span>
+                <span className="latin">{lang.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="stack stack-3" style={{ margin: '20px 0' }}>
           <button
             type="button"
             className="mode-option"
@@ -58,11 +79,8 @@ export function OnboardingScreen() {
               <Smartphone size={19} />
             </span>
             <span>
-              <h3>On this device</h3>
-              <p>
-                Everything is stored locally. Works with no network, and nothing leaves the
-                device. Best for a single person tracking their own stock.
-              </p>
+              <h3>{t('modeLocalTitle')}</h3>
+              <p>{t('modeLocalBody')}</p>
             </span>
           </button>
 
@@ -77,18 +95,15 @@ export function OnboardingScreen() {
               <Server size={19} />
             </span>
             <span>
-              <h3>Shared lab server</h3>
-              <p>
-                Connect to a LabStock server on your network so the whole team sees the same
-                inventory. Requires the server to be running.
-              </p>
+              <h3>{t('modeServerTitle')}</h3>
+              <p>{t('modeServerBody')}</p>
             </span>
           </button>
         </div>
 
         {mode === 'remote' && (
           <div className="field">
-            <label htmlFor="server-url">Server address</label>
+            <label htmlFor="server-url">{t('serverAddress')}</label>
             <input
               id="server-url"
               type="url"
@@ -99,11 +114,9 @@ export function OnboardingScreen() {
               placeholder="192.168.1.89:3000"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
+              dir="ltr"
             />
-            <span className="hint">
-              The address shown when you start the server. Both devices must be on the same
-              Wi-Fi network.
-            </span>
+            <span className="hint">{t('serverAddressHint')}</span>
           </div>
         )}
 
@@ -116,11 +129,11 @@ export function OnboardingScreen() {
         <button className="btn btn-primary btn-block btn-lg" onClick={handleContinue} disabled={busy}>
           {busy ? (
             <>
-              <span className="spinner" /> Connecting
+              <span className="spinner" /> {t('connecting')}
             </>
           ) : (
             <>
-              Continue <ArrowRight size={18} />
+              {t('continue')} <ArrowRight size={18} className="icon-directional" />
             </>
           )}
         </button>

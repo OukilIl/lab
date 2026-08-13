@@ -2,20 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ScanLine } from 'lucide-react'
+import { LayoutDashboard, Package, ScanLine, Settings } from 'lucide-react'
 
-const TABS = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
-  { href: '/scan', label: 'Scan', icon: ScanLine },
-  { href: '/products', label: 'Inventory', icon: Package },
-] as const
+import { useI18n } from '@/lib/i18n/I18nProvider'
+import type { TranslationKey } from '@/lib/i18n/translations'
+
+const TABS: Array<{ href: string; key: TranslationKey; icon: typeof LayoutDashboard }> = [
+  { href: '/', key: 'navOverview', icon: LayoutDashboard },
+  { href: '/scan', key: 'navScan', icon: ScanLine },
+  { href: '/products', key: 'navInventory', icon: Package },
+  { href: '/settings', key: 'navSettings', icon: Settings },
+]
 
 export function NavBar() {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <nav className="app-nav" aria-label="Main">
-      {TABS.map(({ href, label, icon: Icon }) => {
+      {TABS.map(({ href, key, icon: Icon }) => {
         // With trailingSlash enabled for the mobile export, '/scan' arrives
         // as '/scan/', so compare on a normalised path.
         const current = pathname.replace(/\/+$/, '') || '/'
@@ -30,7 +35,7 @@ export function NavBar() {
             aria-current={active ? 'page' : undefined}
           >
             <Icon size={21} strokeWidth={active ? 2.4 : 1.9} aria-hidden />
-            <span>{label}</span>
+            <span>{t(key)}</span>
           </Link>
         )
       })}

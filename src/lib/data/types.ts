@@ -52,6 +52,15 @@ export interface DataBackend {
   deleteBatch(id: string): Promise<Result<void>>
 
   recentUsage(limit?: number): Promise<Result<UsageLogEntry[]>>
+
+  /**
+   * Permanently delete every record this backend owns.
+   *
+   * Only meaningful in local mode, where the data lives on the device. The
+   * remote backend refuses, because one phone must not be able to wipe the
+   * whole team's shared inventory.
+   */
+  clearAllData(): Promise<Result<void>>
 }
 
 /** Persisted connection settings. */

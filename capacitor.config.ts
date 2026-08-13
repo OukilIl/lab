@@ -8,6 +8,10 @@ const config: CapacitorConfig = {
   // HTML straight into this directory.
   webDir: '.next-mobile',
 
+  // The WebView's own background, visible for a frame at launch and in any
+  // overscroll gap. Default is white, which flashes against the dark UI.
+  backgroundColor: '#060b16',
+
   server: {
     // Android serves the bundle over http://localhost rather than file://,
     // which keeps the WebView in a secure context so the camera and crypto
@@ -18,6 +22,10 @@ const config: CapacitorConfig = {
 
   ios: {
     contentInset: 'always',
+    // The document never scrolls (only .app-main does), so the WKWebView's
+    // own scroll view must not either — it is what let the whole app,
+    // nav bar included, drag upward and expose the background beneath.
+    scrollEnabled: false,
   },
 
   android: {

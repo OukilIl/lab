@@ -7,10 +7,12 @@ import { LogIn, Settings, ShieldCheck } from 'lucide-react'
 
 import { useBackend } from '@/lib/data/BackendProvider'
 import { normalizeServerUrl } from '@/lib/data/remote'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { Alert } from './ui'
 
 export function LoginScreen() {
   const { login, settings, configure } = useBackend()
+  const { t } = useI18n()
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -54,14 +56,14 @@ export function LoginScreen() {
         })
         const data = await res.json()
         if (!res.ok) {
-          setError(data?.error ?? 'Could not create the account')
+          setError(data?.error ?? t('somethingWrong'))
           setBusy(false)
           return
         }
         // The account exists now; sign in through the backend so the token is
         // stored the same way as any other session.
       } catch {
-        setError('Could not reach the server')
+        setError(t('cannotConnect'))
         setBusy(false)
         return
       }
@@ -69,7 +71,7 @@ export function LoginScreen() {
 
     const result = await login(username, password)
     setBusy(false)
-    if (!result.ok) setError(result.error ?? 'Sign-in failed')
+    if (!result.ok) setError(result.error ?? t('signInFailed'))
   }
 
   const creating = needsSetup === true
@@ -79,17 +81,17 @@ export function LoginScreen() {
       <div className="centered-card">
         <div className="centered-head">
           <div className="glyph">{creating ? <ShieldCheck size={26} /> : <LogIn size={26} />}</div>
-          <h1>{creating ? 'Create administrator' : 'Sign in'}</h1>
+          <h1>{creating ? t('createAdmin') : t('signIn')}</h1>
           <p>
             {creating
-              ? 'This server has no accounts yet. Create the first administrator account.'
-              : `Connected to ${serverOrigin || 'the lab server'}`}
+              ? t('createAdminSubtitle')
+              : `${t('connectedTo')} ${serverOrigin}`}
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">{t('username')}</label>
             <input
               id="username"
               name="username"
@@ -103,7 +105,7 @@ export function LoginScreen() {
           </div>
 
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('password')}</label>
             <input
               id="password"
               name="password"
@@ -113,7 +115,7 @@ export function LoginScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {creating && <span className="hint">At least 8 characters.</span>}
+            {creating && <span className="hint">{t('passwordHint')}</span>}
           </div>
 
           {error && (
@@ -125,15 +127,15 @@ export function LoginScreen() {
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy}>
             {busy ? (
               <>
-                <span className="spinner" /> {creating ? 'Creating' : 'Signing in'}
+                <span className="spinner" /> {creating ? t('creating') : t('signingIn')}
               </>
             ) : creating ? (
               <>
-                <ShieldCheck size={18} /> Create account
+                <ShieldCheck size={18} /> {t('createAccount')}
               </>
             ) : (
               <>
-                <LogIn size={18} /> Sign in
+                <LogIn size={18} /> {t('signIn')}
               </>
             )}
           </button>
@@ -144,7 +146,7 @@ export function LoginScreen() {
           style={{ marginTop: 12 }}
           onClick={() => void configure({ ...settings, configured: false })}
         >
-          <Settings size={15} /> Change connection settings
+          <Settings size={15} /> {t('changeConnection')}
         </button>
       </div>
     </div>

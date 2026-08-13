@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 
 import './globals.css'
 import { BackendProvider } from '@/lib/data/BackendProvider'
+import { I18nProvider } from '@/lib/i18n/I18nProvider'
 import { NativeBootstrap } from './NativeBootstrap'
 
 /**
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
         <NativeBootstrap />
-        <BackendProvider>{children}</BackendProvider>
+        <I18nProvider>
+          <BackendProvider>{children}</BackendProvider>
+        </I18nProvider>
       </body>
     </html>
   )

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { FlaskConical, LogOut, Moon, Server, Smartphone, Sun } from 'lucide-react'
 
 import { useBackend } from '@/lib/data/BackendProvider'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 
 type Theme = 'system' | 'light' | 'dark'
 const THEME_KEY = 'labstock.theme'
 
 export function TopHeader() {
   const { settings, user, logout, configure } = useBackend()
+  const { t } = useI18n()
 
   // Read synchronously on first render rather than in an effect, which would
   // flash the default theme and trigger a cascading render. The initialiser
@@ -52,7 +54,7 @@ export function TopHeader() {
           title={isRemote ? `Connected to ${settings.serverUrl}` : 'Data is stored on this device'}
         >
           {isRemote ? <Server size={12} /> : <Smartphone size={12} />}
-          <span className="hide-sm">{isRemote ? user?.username ?? 'Server' : 'On device'}</span>
+          <span className="hide-sm">{isRemote ? (user?.username ?? t('storageServer')) : t('storageLocal')}</span>
         </span>
 
         <button
@@ -68,8 +70,8 @@ export function TopHeader() {
           onClick={() =>
             isRemote ? void logout() : void configure({ ...settings, configured: false })
           }
-          aria-label={isRemote ? 'Sign out' : 'Change connection settings'}
-          title={isRemote ? 'Sign out' : 'Change connection settings'}
+          aria-label={isRemote ? t('signOut') : t('changeConnection')}
+          title={isRemote ? t('signOut') : t('changeConnection')}
         >
           <LogOut size={17} />
         </button>

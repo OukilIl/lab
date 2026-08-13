@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Boxes, Minus, PackageSearch, Trash2 } from 'lucide-react'
 
 import { useBackend, useBackendData } from '@/lib/data/BackendProvider'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { daysUntil } from '@/core/inventory'
 import { Alert, EmptyState, ExpiryBadge, SkeletonCard } from '@/components/ui'
 import type { ProductWithBatches } from '@/core/types'
@@ -13,6 +14,7 @@ import { CreateProductForm } from './CreateProductForm'
 export function ProductsScreen() {
   const searchParams = useSearchParams()
   const { backend, revision, invalidate } = useBackend()
+  const { t } = useI18n()
 
   const { data, error, loading } = useBackendData<ProductWithBatches[]>(
     (b) => b.listProducts(),
@@ -46,8 +48,8 @@ export function ProductsScreen() {
   return (
     <div className="stack stack-4">
       <div className="page-head">
-        <h1>Inventory</h1>
-        <p>Define what you track, and record usage as items are consumed.</p>
+        <h1>{t('inventory')}</h1>
+        <p>{t('inventorySubtitle')}</p>
       </div>
 
       <div className="split-layout">
@@ -74,8 +76,8 @@ export function ProductsScreen() {
 
           {data && data.length === 0 && (
             <div className="card card-pad">
-              <EmptyState icon={PackageSearch} title="No products yet">
-                Create a product on the left, then scan its barcode to add stock.
+              <EmptyState icon={PackageSearch} title={t('noProducts')}>
+                {t('noProductsBody')}
               </EmptyState>
             </div>
           )}
@@ -110,8 +112,8 @@ export function ProductsScreen() {
                   </div>
 
                   {active.length === 0 ? (
-                    <EmptyState icon={Boxes} title="No stock on hand">
-                      Scan this product to add a batch.
+                    <EmptyState icon={Boxes} title={t('noStock')}>
+                      {t('noStockBody')}
                     </EmptyState>
                   ) : (
                     <div className="list">
@@ -144,7 +146,7 @@ export function ProductsScreen() {
                                 title="Record one unit used"
                               >
                                 {busy ? <span className="spinner" /> : <Minus size={15} />}
-                                Use 1
+                                {t('useOne')}
                               </button>
 
                               <button
@@ -152,7 +154,7 @@ export function ProductsScreen() {
                                 onClick={() => void removeBatch(batch.id)}
                                 disabled={busy}
                                 aria-label={`Delete batch ${batch.batchNumber}`}
-                                title="Delete this batch"
+                                title={t('deleteBatch')}
                               >
                                 <Trash2 size={15} />
                               </button>

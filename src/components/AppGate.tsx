@@ -13,14 +13,16 @@ import { AlertCircle, RefreshCw, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { useBackend } from '@/lib/data/BackendProvider'
+import { useI18n } from '@/lib/i18n/I18nProvider'
 import { LoadingScreen } from './ui'
 import { OnboardingScreen } from './OnboardingScreen'
 import { LoginScreen } from './LoginScreen'
 
 export function AppGate({ children }: { children: ReactNode }) {
   const { status, error, retry, settings, configure } = useBackend()
+  const { t } = useI18n()
 
-  if (status === 'loading') return <LoadingScreen label="Starting LabStock" />
+  if (status === 'loading') return <LoadingScreen label={t('startingApp')} />
   if (status === 'onboarding') return <OnboardingScreen />
   if (status === 'needs-login') return <LoginScreen />
 
@@ -35,19 +37,19 @@ export function AppGate({ children }: { children: ReactNode }) {
             >
               <AlertCircle size={26} />
             </div>
-            <h1>Cannot connect</h1>
-            <p>{error ?? 'Something went wrong while starting up.'}</p>
+            <h1>{t('cannotConnect')}</h1>
+            <p>{error ?? t('somethingWrong')}</p>
           </div>
 
           <div className="stack stack-3">
             <button className="btn btn-primary btn-block" onClick={() => void retry()}>
-              <RefreshCw size={17} /> Try again
+              <RefreshCw size={17} /> {t('tryAgain')}
             </button>
             <button
               className="btn btn-secondary btn-block"
               onClick={() => void configure({ ...settings, configured: false })}
             >
-              <Settings size={17} /> Change connection settings
+              <Settings size={17} /> {t('changeConnection')}
             </button>
           </div>
         </div>

@@ -188,17 +188,22 @@
 html {
   -webkit-text-size-adjust: 100%;
   height: 100%;
+  /* The document never scrolls — `.app-main` is the single scroll container.
+     Any document-level scroll in an iOS WebView drags fixed chrome with it
+     during rubber-banding, which shows as the nav lifting off the bottom. */
+  overflow: hidden;
 }
 
 body {
-  min-height: 100%;
+  height: 100%;
   /* Explicit zero: the app owns all spacing through its own layout classes,
      and a stray UA or injected `body { padding }` rule would otherwise offset
      every screen and push fixed-width cards past the viewport edge. */
   margin: 0;
   padding: 0;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
+  position: relative;
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.55;
@@ -269,22 +274,43 @@ button { background: none; border: none; cursor: pointer; }
 
 /* ============================ Layout ============================ */
 
+/**
+ * The shell is a fixed, non-scrolling frame; only `.app-main` scrolls.
+ *
+ * Letting the body scroll in an iOS WebView drags `position: fixed` chrome
+ * with it during rubber-band overscroll — the nav lifts and exposes the page
+ * background beneath it. Pinning the shell to the viewport and giving the
+ * content its own scroll container removes that entirely, and also means the
+ * header and nav never move.
+ */
 .app-shell {
-  min-height: 100dvh;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg-base);
 }
 
+/* The only scrolling element in the app. */
 .app-main {
   flex: 1;
   width: 100%;
+  min-height: 0; /* let the flex child actually shrink and scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* `none`, not `contain`: a page that fits the screen must not rubber-band
+     at all — dragging it revealed the WebView background under the nav. */
+  overscroll-behavior: none;
+  padding: 20px 16px 28px;
+}
+
+/* Centre the content without making the scroll container itself narrow,
+   so the scrollbar stays at the window edge. */
+.app-main > * {
   max-width: var(--layout-max);
-  margin: 0 auto;
-  /* Bottom padding clears the fixed nav plus the home indicator, so the last
-     row of content is never hidden behind the bar. */
-  padding: 20px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 32px);
+  margin-inline: auto;
 }
 
 @media (min-width: 768px) {
@@ -313,8 +339,7 @@ button { background: none; border: none; cursor: pointer; }
 /* ============================ Header ============================ */
 
 .app-header {
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
   z-index: 40;
   height: calc(var(--header-h) + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
@@ -362,11 +387,10 @@ button { background: none; border: none; cursor: pointer; }
 
 /* ============================ Bottom navigation ============================ */
 
+/* A flex child of the fixed shell, not `position: fixed` itself — that is
+   what stops it drifting during iOS overscroll. */
 .app-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex: 0 0 auto;
   z-index: 45;
   display: flex;
   justify-content: space-around;
@@ -374,9 +398,7 @@ button { background: none; border: none; cursor: pointer; }
   gap: 2px;
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding: 6px 8px env(safe-area-inset-bottom);
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -415,10 +437,10 @@ button { background: none; border: none; cursor: pointer; }
 }
 
 @media (min-width: 768px) {
+  /* On wider screens the nav moves above the content, but it is still a
+     flex child — the shell owns the layout, nothing is positioned. */
   .app-nav {
-    position: sticky;
-    top: calc(var(--header-h) + env(safe-area-inset-top));
-    bottom: auto;
+    order: -1;
     height: auto;
     justify-content: center;
     gap: 6px;
@@ -566,14 +588,14 @@ button { background: none; border: none; cursor: pointer; }
   font-size: 0.68rem;
   font-weight: 500;
   color: var(--text-muted);
-  margin-left: 0;
+  margin-inline-start: 0;
   letter-spacing: 0;
 }
 
 @media (min-width: 640px) {
   .stat-label { font-size: 0.7rem; gap: 6px; letter-spacing: 0.06em; margin-bottom: 7px; }
   .stat-value { font-size: 1.9rem; }
-  .stat-unit { display: inline; font-size: 0.8rem; margin-left: 4px; }
+  .stat-unit { display: inline; font-size: 0.8rem; margin-inline-start: 4px; }
 }
 
 .stat[data-tone='danger'] { --stat-accent: var(--danger); }
@@ -871,8 +893,10 @@ button { background: none; border: none; cursor: pointer; }
 /* ============================ Auth / onboarding ============================ */
 
 .centered-screen {
-  min-height: 100dvh;
-  min-height: 100vh;
+  /* The document is overflow: hidden, so full-screen pages pin themselves to
+     the viewport and scroll internally when the card is taller than it. */
+  position: fixed;
+  inset: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -883,8 +907,16 @@ button { background: none; border: none; cursor: pointer; }
   background:
     radial-gradient(1000px 520px at 50% -10%, var(--accent-soft), transparent 68%),
     var(--bg-base);
-  /* The page itself must never scroll sideways, whatever the card contains. */
+  overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* When the card is taller than the viewport, `justify-content: center` would
+   clip its top — safe-center falls back gracefully. */
+.centered-screen > .centered-card {
+  margin-block: auto;
 }
 
 .centered-card {
@@ -939,7 +971,7 @@ button { background: none; border: none; cursor: pointer; }
   gap: 12px;
   width: 100%;
   padding: 15px;
-  text-align: left;
+  text-align: start;
   background: var(--bg-surface);
   border: 1.5px solid var(--border-subtle);
   border-radius: var(--r-lg);
@@ -991,6 +1023,10 @@ button { background: none; border: none; cursor: pointer; }
   max-height: 62vh;
   overflow: hidden;
   border-radius: var(--r-lg);
+  /* Black only for the web engine, where the <video> element paints inside
+     this box. On native the preview is behind the WebView, so this is
+     overridden to transparent below — otherwise it is an opaque hole exactly
+     where the user is aiming. */
   background: #000;
 }
 
@@ -1008,11 +1044,42 @@ button { background: none; border: none; cursor: pointer; }
   display: block;
 }
 
-/* When ML Kit renders the preview behind the WebView, the page must be
-   transparent for the camera to show through. */
+/* ---- Native (ML Kit) preview renders *behind* the WebView ----
+   Every layer between the viewport and the camera must be transparent, or it
+   shows as a black rectangle over the feed. */
 body.scanner-active,
-body.scanner-active .app-shell {
+body.scanner-active .app-shell,
+body.scanner-active .app-main {
   background: transparent !important;
+}
+
+/* The card wrapping the viewfinder, and the frame itself. */
+body.scanner-active .scanner-card,
+body.scanner-active .scanner-frame {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+}
+
+/* The web <video> is unused on native and would paint black over the preview. */
+body.scanner-active .scanner-frame video {
+  display: none;
+}
+
+/* Text over a live camera feed needs its own contrast, not the page palette. */
+body.scanner-active .scanner-card .card-body,
+body.scanner-active .scanner-card .card-head {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+body.scanner-active .scanner-card .card-head h2,
+body.scanner-active .scanner-card .text-muted,
+body.scanner-active .scanner-card .text-xs {
+  color: rgba(255, 255, 255, 0.86) !important;
 }
 
 body.scanner-active .app-header,
@@ -1102,7 +1169,7 @@ body.scanner-active .app-nav {
 .scanner-controls {
   position: absolute;
   top: 12px;
-  right: 12px;
+  inset-inline-end: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1145,6 +1212,191 @@ body.scanner-active .app-nav {
   0%   { opacity: 0.42; }
   100% { opacity: 0; }
 }
+
+/* ============================ RTL ============================ */
+
+/* Directional icons (arrows, chevrons) must mirror; symmetric ones must not.
+   Marking them by class keeps this explicit rather than flipping every svg. */
+[dir='rtl'] .icon-directional {
+  transform: scaleX(-1);
+}
+
+/* Identifiers, dates and server addresses stay left-to-right even in Arabic:
+   a GTIN reversed is a different number. */
+[dir='rtl'] .mono,
+[dir='rtl'] input.mono,
+[dir='rtl'] input[type='number'],
+[dir='rtl'] input[type='date'],
+[dir='rtl'] input[type='url'],
+[dir='rtl'] .numeric {
+  direction: ltr;
+  text-align: start;
+}
+
+/* "LabStock" is a product name, not a phrase — keep its two halves in order. */
+[dir='rtl'] .brand {
+  direction: ltr;
+}
+
+/* Meters fill from the reading edge, so in RTL that is the right-hand side. */
+[dir='rtl'] .meter {
+  transform: scaleX(-1);
+}
+
+/* ============================ Segmented tabs ============================ */
+
+.segmented {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--bg-sunken);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.segmented button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: calc(var(--r-md) - 4px);
+  font-size: 0.87rem;
+  font-weight: 560;
+  color: var(--text-secondary);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.segmented button[data-active='true'] {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ============================ Modal ============================ */
+
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 16, 0.62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fade-in var(--t-base) var(--ease-out);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  width: min(400px, 100%);
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl);
+  animation: modal-in var(--t-base) var(--ease-spring);
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+}
+
+.modal p {
+  font-size: 0.89rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.modal-actions .btn { flex: 1; }
+
+/* ============================ Settings rows ============================ */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.setting-row:last-child { border-bottom: none; }
+
+.setting-label {
+  font-weight: 560;
+  font-size: 0.92rem;
+}
+
+.setting-help {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Language picker */
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.lang-option {
+  padding: 11px 10px;
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+
+.lang-option[data-selected='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.lang-option .native {
+  display: block;
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+.lang-option .latin {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.lang-option[data-selected='true'] .latin { color: inherit; opacity: 0.75; }
 
 /* ============================ Utilities ============================ */
 
@@ -1212,9 +1464,11 @@ body.scanner-active .app-nav {
     grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
     gap: 22px;
   }
+  /* Sticky relative to .app-main, which is the scroll container now, so the
+     offset is measured from the top of that box rather than the viewport. */
   .split-layout > .sticky-panel {
     position: sticky;
-    top: calc(var(--header-h) + env(safe-area-inset-top) + 68px);
+    top: 0;
   }
 }
 

@@ -40,6 +40,8 @@ interface BackendContextValue {
   logout(): Promise<void>
   retry(): Promise<void>
   invalidate(): void
+  /** Clear stored settings and return to the first-run setup screen. */
+  resetSettings(): Promise<void>
 }
 
 const BackendContext = createContext<BackendContextValue | null>(null)
@@ -145,6 +147,20 @@ export function BackendProvider({ children }: { children: ReactNode }) {
 
   const invalidate = useCallback(() => setRevision((n) => n + 1), [])
 
+  const resetSettings = useCallback(async () => {
+    // Sign out first so a stored bearer token does not outlive the settings
+    // that pointed at that server.
+    if (backend) await backend.logout()
+
+    const cleared = { ...DEFAULT_SETTINGS }
+    await saveSettings(cleared)
+    setSettings(cleared)
+    setBackend(null)
+    setUser(null)
+    setError(null)
+    setStatus('onboarding')
+  }, [backend])
+
   const value = useMemo<BackendContextValue>(
     () => ({
       status,
@@ -158,8 +174,22 @@ export function BackendProvider({ children }: { children: ReactNode }) {
       logout,
       retry,
       invalidate,
+      resetSettings,
     }),
-    [status, settings, backend, user, error, revision, configure, login, logout, retry, invalidate]
+    [
+      status,
+      settings,
+      backend,
+      user,
+      error,
+      revision,
+      configure,
+      login,
+      logout,
+      retry,
+      invalidate,
+      resetSettings,
+    ]
   )
 
   return <BackendContext.Provider value={value}>{children}</BackendContext.Provider>
