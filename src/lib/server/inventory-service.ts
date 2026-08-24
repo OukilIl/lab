@@ -8,6 +8,7 @@
 import prisma from '@/lib/db'
 import { buildDashboard, validateBatch, validateProduct } from '@/core/inventory'
 import { err, ok } from '@/core/types'
+import { isStorageTemp } from '@/core/types'
 import type {
   DashboardData,
   InventoryBatch,
@@ -36,6 +37,34 @@ type PrismaBatch = {
   notes: string | null
 }
 
+type PrismaProduct = {
+  id: string
+  gtin: string
+  name: string
+  brand: string | null
+  supplier: string | null
+  storageTemp: string | null
+  targetStock: number
+  lowStockThresholdPct: number
+  expirationWarningDays: number
+}
+
+function serializeProduct(product: PrismaProduct): Product {
+  return {
+    id: product.id,
+    gtin: product.gtin,
+    name: product.name,
+    brand: product.brand,
+    supplier: product.supplier,
+    // Guard the free-form column: a value written by an older build (or by
+    // hand) must not smuggle an invalid literal into the typed domain.
+    storageTemp: isStorageTemp(product.storageTemp) ? product.storageTemp : null,
+    targetStock: product.targetStock,
+    lowStockThresholdPct: product.lowStockThresholdPct,
+    expirationWarningDays: product.expirationWarningDays,
+  }
+}
+
 function serializeBatch(batch: PrismaBatch): InventoryBatch {
   return {
     id: batch.id,
@@ -59,12 +88,7 @@ export async function listProducts(): Promise<Result<ProductWithBatches[]>> {
 
     return ok(
       products.map((p) => ({
-        id: p.id,
-        gtin: p.gtin,
-        name: p.name,
-        targetStock: p.targetStock,
-        lowStockThresholdPct: p.lowStockThresholdPct,
-        expirationWarningDays: p.expirationWarningDays,
+        ...serializeProduct(p),
         batches: p.inventoryBatches.map(serializeBatch),
       }))
     )
@@ -82,12 +106,7 @@ export async function getProduct(gtin: string): Promise<Result<ProductWithBatche
     if (!p) return ok(null)
 
     return ok({
-      id: p.id,
-      gtin: p.gtin,
-      name: p.name,
-      targetStock: p.targetStock,
-      lowStockThresholdPct: p.lowStockThresholdPct,
-      expirationWarningDays: p.expirationWarningDays,
+      ...serializeProduct(p),
       batches: p.inventoryBatches.map(serializeBatch),
     })
   } catch {
@@ -110,19 +129,15 @@ export async function createProduct(input: NewProductInput): Promise<Result<Prod
       data: {
         gtin: input.gtin.trim(),
         name: input.name.trim(),
+        brand: input.brand?.trim() || null,
+        supplier: input.supplier?.trim() || null,
+        storageTemp: input.storageTemp ?? null,
         targetStock: input.targetStock,
         lowStockThresholdPct: input.lowStockThresholdPct,
         expirationWarningDays: input.expirationWarningDays,
       },
     })
-    return ok({
-      id: created.id,
-      gtin: created.gtin,
-      name: created.name,
-      targetStock: created.targetStock,
-      lowStockThresholdPct: created.lowStockThresholdPct,
-      expirationWarningDays: created.expirationWarningDays,
-    })
+    return ok(serializeProduct(created))
   } catch (e) {
     if (typeof e === 'object' && e !== null && (e as { code?: string }).code === 'P2002') {
       return err('A product with this GTIN already exists.', 'DUPLICATE')
@@ -142,6 +157,14 @@ export async function updateProduct(
     const merged = {
       gtin: existing.gtin,
       name: input.name ?? existing.name,
+      brand: input.brand !== undefined ? input.brand : existing.brand,
+      supplier: input.supplier !== undefined ? input.supplier : existing.supplier,
+      storageTemp:
+        input.storageTemp !== undefined
+          ? input.storageTemp
+          : isStorageTemp(existing.storageTemp)
+            ? existing.storageTemp
+            : null,
       targetStock: input.targetStock ?? existing.targetStock,
       lowStockThresholdPct: input.lowStockThresholdPct ?? existing.lowStockThresholdPct,
       expirationWarningDays: input.expirationWarningDays ?? existing.expirationWarningDays,
@@ -154,20 +177,16 @@ export async function updateProduct(
       where: { id },
       data: {
         name: merged.name.trim(),
+        brand: merged.brand?.trim() || null,
+        supplier: merged.supplier?.trim() || null,
+        storageTemp: merged.storageTemp ?? null,
         targetStock: merged.targetStock,
         lowStockThresholdPct: merged.lowStockThresholdPct,
         expirationWarningDays: merged.expirationWarningDays,
       },
     })
 
-    return ok({
-      id: updated.id,
-      gtin: updated.gtin,
-      name: updated.name,
-      targetStock: updated.targetStock,
-      lowStockThresholdPct: updated.lowStockThresholdPct,
-      expirationWarningDays: updated.expirationWarningDays,
-    })
+    return ok(serializeProduct(updated))
   } catch {
     return err('Could not update product')
   }

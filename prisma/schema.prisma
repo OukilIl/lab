@@ -21,6 +21,12 @@ model Product {
   id                    String           @id @default(uuid())
   gtin                  String           @unique
   name                  String
+  brand                 String?
+  supplier              String?
+  /// Storage temperature: "ambient" | "refrigerated" | "frozen".
+  /// Free-form rather than an enum because SQLite has no native enum type
+  /// and the set may grow (e.g. cryogenic).
+  storageTemp           String?
   targetStock           Int              @default(100)
   lowStockThresholdPct  Int              @default(20) // Alert when stock <= 20% of target
   expirationWarningDays Int              @default(30)

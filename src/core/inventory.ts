@@ -8,6 +8,7 @@
 
 import type {
   DashboardData,
+
   ExpiryStatus,
   ExpiryWarning,
   InventoryBatch,
@@ -81,6 +82,16 @@ export function validateProduct(input: NewProductInput): string | null {
     input.expirationWarningDays > 3650
   ) {
     return 'Expiry warning must be between 1 and 3650 days'
+  }
+
+  // Optional metadata: only length-checked, since these are free text.
+  if (input.brand && input.brand.length > 120) return 'Brand name is too long (max 120)'
+  if (input.supplier && input.supplier.length > 120) return 'Supplier name is too long (max 120)'
+  if (
+    input.storageTemp != null &&
+    !(['ambient', 'refrigerated', 'frozen'] as string[]).includes(input.storageTemp)
+  ) {
+    return 'Storage temperature must be ambient, refrigerated or frozen'
   }
   return null
 }

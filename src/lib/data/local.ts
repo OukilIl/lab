@@ -21,7 +21,7 @@ import type {
   Result,
   UsageLogEntry,
 } from '@/core/types'
-import { DB_NAME, SCHEMA_STATEMENTS, SCHEMA_VERSION } from './schema-sql'
+import { DB_NAME, MIGRATION_STATEMENTS, SCHEMA_STATEMENTS, SCHEMA_VERSION } from './schema-sql'
 import type { DataBackend, SessionUser } from './types'
 
 /**
@@ -130,6 +130,17 @@ export class LocalBackend implements DataBackend {
       for (const statement of SCHEMA_STATEMENTS) {
         await this.db.execute(statement)
       }
+
+      // Additive migrations for databases created before these columns
+      // existed. Each failure is a "duplicate column" on an already-migrated
+      // database, which is the expected no-op.
+      for (const statement of MIGRATION_STATEMENTS) {
+        try {
+          await this.db.execute(statement)
+        } catch {
+          /* column already present */
+        }
+      }
       await this.db.execute('PRAGMA foreign_keys = ON')
 
       return ok(undefined)
@@ -188,7 +199,8 @@ export class LocalBackend implements DataBackend {
   async listProducts(): Promise<Result<ProductWithBatches[]>> {
     try {
       const products = await this.query<Product>(
-        `SELECT id, gtin, name, targetStock, lowStockThresholdPct, expirationWarningDays
+        `SELECT id, gtin, name, brand, supplier, storageTemp,
+                targetStock, lowStockThresholdPct, expirationWarningDays
          FROM products ORDER BY name COLLATE NOCASE ASC`
       )
       const batches = await this.query<InventoryBatch>(
@@ -205,7 +217,8 @@ export class LocalBackend implements DataBackend {
   async getProduct(gtin: string): Promise<Result<ProductWithBatches | null>> {
     try {
       const rows = await this.query<Product>(
-        `SELECT id, gtin, name, targetStock, lowStockThresholdPct, expirationWarningDays
+        `SELECT id, gtin, name, brand, supplier, storageTemp,
+                targetStock, lowStockThresholdPct, expirationWarningDays
          FROM products WHERE gtin = ?`,
         [gtin]
       )
@@ -242,15 +255,29 @@ export class LocalBackend implements DataBackend {
         return err('A product with this GTIN already exists.', 'DUPLICATE')
       }
 
-      const product: Product = { id: newId(), ...input, gtin: input.gtin.trim(), name: input.name.trim() }
+      const product: Product = {
+        id: newId(),
+        gtin: input.gtin.trim(),
+        name: input.name.trim(),
+        brand: input.brand?.trim() || null,
+        supplier: input.supplier?.trim() || null,
+        storageTemp: input.storageTemp ?? null,
+        targetStock: input.targetStock,
+        lowStockThresholdPct: input.lowStockThresholdPct,
+        expirationWarningDays: input.expirationWarningDays,
+      }
       await this.run(
         `INSERT INTO products
-           (id, gtin, name, targetStock, lowStockThresholdPct, expirationWarningDays)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+           (id, gtin, name, brand, supplier, storageTemp,
+            targetStock, lowStockThresholdPct, expirationWarningDays)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           product.id,
           product.gtin,
           product.name,
+          product.brand,
+          product.supplier,
+          product.storageTemp,
           product.targetStock,
           product.lowStockThresholdPct,
           product.expirationWarningDays,
@@ -266,7 +293,8 @@ export class LocalBackend implements DataBackend {
   async updateProduct(id: string, input: Partial<NewProductInput>): Promise<Result<Product>> {
     try {
       const rows = await this.query<Product>(
-        `SELECT id, gtin, name, targetStock, lowStockThresholdPct, expirationWarningDays
+        `SELECT id, gtin, name, brand, supplier, storageTemp,
+                targetStock, lowStockThresholdPct, expirationWarningDays
          FROM products WHERE id = ?`,
         [id]
       )
@@ -278,10 +306,14 @@ export class LocalBackend implements DataBackend {
 
       await this.run(
         `UPDATE products
-            SET name = ?, targetStock = ?, lowStockThresholdPct = ?, expirationWarningDays = ?
+            SET name = ?, brand = ?, supplier = ?, storageTemp = ?,
+                targetStock = ?, lowStockThresholdPct = ?, expirationWarningDays = ?
           WHERE id = ?`,
         [
           merged.name.trim(),
+          merged.brand?.trim() || null,
+          merged.supplier?.trim() || null,
+          merged.storageTemp ?? null,
           merged.targetStock,
           merged.lowStockThresholdPct,
           merged.expirationWarningDays,

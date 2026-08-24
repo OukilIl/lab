@@ -6,10 +6,22 @@
  * single representation, and so JSON round-trips are lossless.
  */
 
+/** Storage temperature requirement for a product. */
+export type StorageTemp = 'ambient' | 'refrigerated' | 'frozen'
+
+export const STORAGE_TEMPS: StorageTemp[] = ['ambient', 'refrigerated', 'frozen']
+
+export function isStorageTemp(value: unknown): value is StorageTemp {
+  return typeof value === 'string' && (STORAGE_TEMPS as string[]).includes(value)
+}
+
 export interface Product {
   id: string
   gtin: string
   name: string
+  brand: string | null
+  supplier: string | null
+  storageTemp: StorageTemp | null
   targetStock: number
   lowStockThresholdPct: number
   expirationWarningDays: number
@@ -71,6 +83,9 @@ export interface DashboardData {
 export interface NewProductInput {
   gtin: string
   name: string
+  brand?: string | null
+  supplier?: string | null
+  storageTemp?: StorageTemp | null
   targetStock: number
   lowStockThresholdPct: number
   expirationWarningDays: number

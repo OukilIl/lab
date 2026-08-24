@@ -52,8 +52,9 @@ export default function DashboardPage() {
         <p>{t('overviewSubtitle')}</p>
       </div>
 
+      {/* Each tile drills into the list behind its number. */}
       <div className="stat-grid">
-        <div className="stat">
+        <Link href="/list?view=all" className="stat stat-link">
           <div className="stat-label">
             <Layers size={13} /> {t('totalStock')}
           </div>
@@ -61,9 +62,13 @@ export default function DashboardPage() {
             {totalUnits}
             <span className="stat-unit">{t('units')}</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="stat" data-tone={expiredCount > 0 ? 'danger' : undefined}>
+        <Link
+          href="/list?view=expiring"
+          className="stat stat-link"
+          data-tone={expiredCount > 0 ? 'danger' : undefined}
+        >
           <div className="stat-label">
             <AlertTriangle size={13} /> {t('expiring')}
           </div>
@@ -75,9 +80,13 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-        </div>
+        </Link>
 
-        <div className="stat" data-tone={lowStock.length > 0 ? 'warn' : undefined}>
+        <Link
+          href="/list?view=low"
+          className="stat stat-link"
+          data-tone={lowStock.length > 0 ? 'warn' : undefined}
+        >
           <div className="stat-label">
             <TrendingDown size={13} /> {t('lowStock')}
           </div>
@@ -85,7 +94,7 @@ export default function DashboardPage() {
             {lowStock.length}
             <span className="stat-unit">{t('of')} {productCount}</span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {allClear && productCount > 0 && (
@@ -127,16 +136,20 @@ export default function DashboardPage() {
               ) : (
                 <div className="list">
                   {expiringSoon.slice(0, 8).map((w) => (
-                    <div key={w.batch.id} className="list-row">
+                    <Link
+                      key={w.batch.id}
+                      href={`/products/detail?gtin=${encodeURIComponent(w.product.gtin)}`}
+                      className="list-row"
+                    >
                       <div className="grow">
                         <div className="list-row-title truncate">{w.product.name}</div>
                         <div className="list-row-meta">
-                          {t('lot')} <span className="mono selectable">{w.batch.batchNumber}</span> ·{' '}
+                          {t('lot')} <span className="mono">{w.batch.batchNumber}</span> ·{' '}
                           <span className="numeric">{w.batch.currentQuantity}</span> {t('left')}
                         </div>
                       </div>
                       <ExpiryBadge days={w.daysToExpiry} />
-                    </div>
+                    </Link>
                   ))}
                   {expiringSoon.length > 8 && (
                     <div className="list-row text-xs text-muted">
@@ -165,7 +178,11 @@ export default function DashboardPage() {
               ) : (
                 <div className="stack stack-4">
                   {lowStock.slice(0, 8).map((l) => (
-                    <div key={l.product.id}>
+                    <Link
+                      key={l.product.id}
+                      href={`/products/detail?gtin=${encodeURIComponent(l.product.gtin)}`}
+                      className="row-link"
+                    >
                       <div className="row-between" style={{ marginBottom: 6 }}>
                         <span className="list-row-title truncate">{l.product.name}</span>
                         <span className="text-sm numeric" style={{ color: 'var(--danger-text)', fontWeight: 620 }}>
@@ -190,7 +207,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

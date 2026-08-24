@@ -1,6 +1,7 @@
 import { authenticate } from '@/lib/auth'
 import { apiError, preflight, readJson, respond, toInt } from '@/lib/server/api'
 import { deleteProduct, getProduct, updateProduct } from '@/lib/server/inventory-service'
+import { isStorageTemp } from '@/core/types'
 import type { NewProductInput } from '@/core/types'
 
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,14 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
 
   const patch: Partial<NewProductInput> = {}
   if (typeof body.name === 'string') patch.name = body.name.trim()
+  // `null` clears the field; absent leaves it unchanged.
+  if (body.brand !== undefined) patch.brand = typeof body.brand === 'string' ? body.brand : null
+  if (body.supplier !== undefined) {
+    patch.supplier = typeof body.supplier === 'string' ? body.supplier : null
+  }
+  if (body.storageTemp !== undefined) {
+    patch.storageTemp = isStorageTemp(body.storageTemp) ? body.storageTemp : null
+  }
   if (body.targetStock !== undefined) patch.targetStock = toInt(body.targetStock, 100)
   if (body.lowStockThresholdPct !== undefined) {
     patch.lowStockThresholdPct = toInt(body.lowStockThresholdPct, 20)

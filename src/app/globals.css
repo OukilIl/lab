@@ -1668,3 +1668,257 @@ body.scanner-active .scanner-card .scanner-scrim {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ============================ Search & filters ============================ */
+
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: 42px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
+}
+
+.search-field:focus-within {
+  background: var(--bg-surface);
+  border-color: var(--border-focus);
+  box-shadow: var(--ring-focus);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--text-primary);
+  /* 16px avoids the iOS zoom-on-focus. */
+  font-size: 16px;
+  /* Safari draws its own clear button on type=search; ours is themed. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-field input::-webkit-search-cancel-button { display: none; }
+
+@media (min-width: 768px) {
+  .search-field input { font-size: 0.92rem; }
+}
+
+.search-clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+}
+
+/* Count badge on the filter button. */
+.btn-icon { position: relative; }
+
+.filter-count {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.btn[data-active='true'] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.facet-label {
+  font-size: 0.7rem;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 520;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chip[data-selected='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* ============================ Dropdown menu ============================ */
+
+.menu-anchor { position: relative; }
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  z-index: 71;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  animation: menu-in var(--t-fast) var(--ease-out);
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.menu-help {
+  padding: 8px 10px 10px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  font-size: 0.88rem;
+  font-weight: 520;
+  color: var(--text-primary);
+  text-align: start;
+}
+
+.menu button:hover { background: var(--bg-sunken); }
+
+/* ============================ Product rows & detail ============================ */
+
+/* A whole card that behaves as one tap target. */
+.row-link {
+  display: block;
+  width: 100%;
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.row-link:active { transform: scale(0.995); }
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.meta-item .meta-label {
+  font-size: 0.68rem;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.meta-item .meta-value {
+  font-size: 0.92rem;
+  font-weight: 540;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px 7px 9px;
+  border-radius: var(--r-full);
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 540;
+}
+
+.back-button:hover { color: var(--text-primary); }
+
+/* Storage temperature badge colours: cold reads blue, frozen colder. */
+.badge-storage-ambient { background: var(--bg-sunken); color: var(--text-secondary); }
+.badge-storage-refrigerated { background: rgba(56, 189, 248, 0.16); color: var(--accent-text); }
+.badge-storage-frozen { background: rgba(129, 140, 248, 0.18); color: #6366f1; }
+
+/* Indigo is too dark to read on a dark surface; lighten it there. */
+:root[data-theme='dark'] .badge-storage-frozen {
+  color: #a5b4fc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .badge-storage-frozen {
+    color: #a5b4fc;
+  }
+}
+
+/* Stat tiles that drill into a filtered list. */
+.stat-link {
+  display: block;
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stat-link:active { transform: scale(0.98); }
+
+@media (hover: hover) {
+  .stat-link:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+}

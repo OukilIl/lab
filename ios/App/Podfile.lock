@@ -6,12 +6,17 @@ PODS:
     - SQLCipher
     - ZIPFoundation
   - CapacitorCordova (8.5.0)
+  - CapacitorFilesystem (8.1.3):
+    - Capacitor
+    - IONFilesystemLib (~> 1.1.1)
   - CapacitorHaptics (8.0.2):
     - Capacitor
   - CapacitorMlkitBarcodeScanning (8.1.0):
     - Capacitor
     - GoogleMLKit/BarcodeScanning (~> 8.0.0)
   - CapacitorPreferences (8.0.1):
+    - Capacitor
+  - CapacitorShare (8.0.1):
     - Capacitor
   - CapacitorSplashScreen (8.0.2):
     - Capacitor
@@ -40,6 +45,7 @@ PODS:
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - GTMSessionFetcher/Core (3.5.0)
+  - IONFilesystemLib (1.1.2)
   - MLImage (1.0.0-beta7)
   - MLKitBarcodeScanning (7.0.0):
     - MLKitCommon (~> 13.0)
@@ -74,9 +80,11 @@ DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorCommunitySqlite (from `../../node_modules/@capacitor-community/sqlite`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
   - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
   - "CapacitorMlkitBarcodeScanning (from `../../node_modules/@capacitor-mlkit/barcode-scanning`)"
   - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+  - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
 
@@ -87,6 +95,7 @@ SPEC REPOS:
     - GoogleToolboxForMac
     - GoogleUtilities
     - GTMSessionFetcher
+    - IONFilesystemLib
     - MLImage
     - MLKitBarcodeScanning
     - MLKitCommon
@@ -103,12 +112,16 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor-community/sqlite"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorFilesystem:
+    :path: "../../node_modules/@capacitor/filesystem"
   CapacitorHaptics:
     :path: "../../node_modules/@capacitor/haptics"
   CapacitorMlkitBarcodeScanning:
     :path: "../../node_modules/@capacitor-mlkit/barcode-scanning"
   CapacitorPreferences:
     :path: "../../node_modules/@capacitor/preferences"
+  CapacitorShare:
+    :path: "../../node_modules/@capacitor/share"
   CapacitorSplashScreen:
     :path: "../../node_modules/@capacitor/splash-screen"
   CapacitorStatusBar:
@@ -118,9 +131,11 @@ SPEC CHECKSUMS:
   Capacitor: 00b87168591cc006ea6f5c0de681ec5c39a2c8eb
   CapacitorCommunitySqlite: 785553c54e52da62d058238d4571db5692c022c4
   CapacitorCordova: 9d3acbb574048e7167d2af127a0af2123e619f2f
+  CapacitorFilesystem: b2bbd84bb91c177906c9dbc252864cb71ab9957b
   CapacitorHaptics: 296f771ecd89c7a1bd92a7b6826a7d268e2e70f5
   CapacitorMlkitBarcodeScanning: 31c6af9f39873ff69e16ed5b39ebe2e1915f16fe
   CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
+  CapacitorShare: 0c58305114538568059bfc07111f22dcb9cb2a82
   CapacitorSplashScreen: 7bf61c2001557ff9e195e601c6b87344480d3c65
   CapacitorStatusBar: eca7bc2b58d9f886f1ef9edb66e57a9b29c121af
   GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
@@ -128,6 +143,7 @@ SPEC CHECKSUMS:
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
   GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
+  IONFilesystemLib: 21a63377696b2d8fab5632ecfb7d2ac67bddb68a
   MLImage: 2ab9c968e75f57911c16f4c9d9e8a8e9604a86a1
   MLKitBarcodeScanning: 72c6437f13a900833b400136be53a8a5d86f42fa
   MLKitCommon: 26b779f072a182c1603d4c88a101c350cac837b1
@@ -137,6 +153,6 @@ SPEC CHECKSUMS:
   SQLCipher: eb79c64049cb002b4e9fcb30edb7979bf4706dfc
   ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
 
-PODFILE CHECKSUM: af268db5cfe54d3ce9600333aa09295be1caf870
+PODFILE CHECKSUM: 0e12603cb0cd0d0fdd70e2d7272182c1e032c4d4
 
 COCOAPODS: 1.16.2
